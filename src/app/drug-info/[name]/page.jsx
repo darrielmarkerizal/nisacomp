@@ -365,8 +365,17 @@ export default function DrugDetailPage() {
                 )}
                 <div className="mt-4 w-full text-center">
                   <p className="font-medium">
-                    {drug.chemicalData.molecularFormula}
+                    {drug.chemicalData.molecularFormula
+                      .split("")
+                      .map((char, index) => {
+                        return /\d/.test(char) ? (
+                          <sub key={index}>{char}</sub>
+                        ) : (
+                          char
+                        );
+                      })}
                   </p>
+
                   <p className="text-sm text-slate-500">Formula Molekul</p>
                 </div>
               </CardContent>
@@ -575,77 +584,137 @@ export default function DrugDetailPage() {
 
             <div className="lg:col-span-2">
               <Card className="h-full">
-                <CardHeader>
-                  <CardTitle>Properti Kimia</CardTitle>
+                <CardHeader className="border-b pb-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <MdOutlineScience className="text-indigo-600" /> Properti
+                    Kimia
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-slate-500">
-                        Formula Molekul
-                      </p>
-                      <p className="font-medium">
-                        {drug.chemicalData.molecularFormula}
-                      </p>
+                <CardContent className="pt-4">
+                  {/* Format function for molecular formula */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      {/* Left column */}
+                      <div className="space-y-4">
+                        <div className="bg-slate-50 p-3 rounded-md">
+                          <p className="text-sm font-medium text-slate-500 mb-1">
+                            Formula Molekul
+                          </p>
+                          <p className="font-medium text-lg text-slate-800">
+                            {drug.chemicalData.molecularFormula
+                              .split("")
+                              .map((char, index) => {
+                                return /\d/.test(char) ? (
+                                  <sub key={index} className="text-base">
+                                    {char}
+                                  </sub>
+                                ) : (
+                                  <span key={index}>{char}</span>
+                                );
+                              })}
+                          </p>
+                        </div>
+
+                        <div className="bg-slate-50 p-3 rounded-md">
+                          <p className="text-sm font-medium text-slate-500 mb-1">
+                            IUPAC
+                          </p>
+                          <p className="font-medium text-sm text-slate-700 break-words">
+                            {drug.chemicalData.iupacName}
+                          </p>
+                        </div>
+
+                        <div className="bg-slate-50 p-3 rounded-md">
+                          <p className="text-sm font-medium text-slate-500 mb-1">
+                            SMILES
+                          </p>
+                          <p className="font-mono text-xs text-slate-700 break-all bg-white p-2 rounded border border-slate-200 overflow-auto max-h-20">
+                            {drug.chemicalData.smiles}
+                          </p>
+                        </div>
+
+                        <div className="bg-slate-50 p-3 rounded-md">
+                          <p className="text-sm font-medium text-slate-500 mb-1">
+                            TPSA
+                          </p>
+                          <p className="font-medium">
+                            {drug.chemicalData.tpsa} Å<sup>2</sup>
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-slate-500">
-                        Berat Molekul
-                      </p>
-                      <p className="font-medium">
-                        {drug.chemicalData.molecularWeight} g/mol
-                      </p>
+
+                    <div>
+                      {/* Right column */}
+                      <div className="space-y-4">
+                        <div className="bg-slate-50 p-3 rounded-md">
+                          <p className="text-sm font-medium text-slate-500 mb-1">
+                            Berat Molekul
+                          </p>
+                          <p className="font-medium">
+                            {drug.chemicalData.molecularWeight} g/mol
+                          </p>
+                        </div>
+
+                        <div className="bg-slate-50 p-3 rounded-md">
+                          <p className="text-sm font-medium text-slate-500 mb-1">
+                            InChI Key
+                          </p>
+                          <p className="font-mono text-xs bg-white p-2 border border-slate-200 rounded">
+                            {drug.chemicalData.inchiKey}
+                          </p>
+                        </div>
+
+                        <div className="bg-slate-50 p-3 rounded-md">
+                          <p className="text-sm font-medium text-slate-500 mb-1">
+                            XLogP
+                          </p>
+                          <p className="font-medium">
+                            {drug.chemicalData.xLogP}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-slate-50 p-3 rounded-md">
+                            <p className="text-sm font-medium text-slate-500 mb-1">
+                              H-Bond Donors
+                            </p>
+                            <p className="font-medium text-center text-lg">
+                              {drug.chemicalData.hBondDonors}
+                            </p>
+                          </div>
+
+                          <div className="bg-slate-50 p-3 rounded-md">
+                            <p className="text-sm font-medium text-slate-500 mb-1">
+                              H-Bond Acceptors
+                            </p>
+                            <p className="font-medium text-center text-lg">
+                              {drug.chemicalData.hBondAcceptors}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-slate-500">
-                        IUPAC
-                      </p>
-                      <p className="font-medium text-sm">
-                        {drug.chemicalData.iupacName}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-slate-500">
-                        InChI Key
-                      </p>
-                      <p className="font-medium text-xs">
-                        {drug.chemicalData.inchiKey}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-slate-500">
-                        SMILES
-                      </p>
-                      <p className="font-medium text-xs">
-                        {drug.chemicalData.smiles}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-slate-500">
-                        XLogP
-                      </p>
-                      <p className="font-medium">{drug.chemicalData.xLogP}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-slate-500">TPSA</p>
-                      <p className="font-medium">{drug.chemicalData.tpsa} Å²</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-slate-500">
-                        H-Bond Donors
-                      </p>
-                      <p className="font-medium">
-                        {drug.chemicalData.hBondDonors}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-slate-500">
-                        H-Bond Acceptors
-                      </p>
-                      <p className="font-medium">
-                        {drug.chemicalData.hBondAcceptors}
-                      </p>
-                    </div>
+                  </div>
+
+                  {/* Properties toolbar */}
+                  <div className="mt-4 pt-3 border-t text-sm text-slate-500">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      asChild
+                      className="text-xs text-slate-600 hover:bg-slate-100"
+                    >
+                      <a
+                        href={drug.sources.pubchem}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1"
+                      >
+                        <MdOutlineInfo className="h-3 w-3" />
+                        <span>Lebih detail di PubChem</span>
+                      </a>
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

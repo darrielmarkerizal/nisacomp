@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
@@ -66,11 +66,12 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 
-export default function DrugInfoPage() {
+// Komponen untuk membungkus penggunaan useSearchParams
+function DrugInfoContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const querySearch = searchParams.get("search") || "";
-  
+
   const [searchTerm, setSearchTerm] = useState(querySearch);
   const [isSearchSubmitted, setIsSearchSubmitted] = useState(!!querySearch);
   const [drugs, setDrugs] = useState([]);
@@ -97,7 +98,7 @@ export default function DrugInfoPage() {
   const fetchDrugs = async (searchQuery = searchTerm) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await axios.get("/api/drug", {
         params: {
@@ -106,12 +107,14 @@ export default function DrugInfoPage() {
           limit: itemsPerPage,
         },
       });
-      
+
       setDrugs(response.data.drugs || []);
       setTotalItems(response.data.total || 0);
       setIsSearchSubmitted(true);
     } catch (err) {
-      setError("Terjadi kesalahan saat mengambil data obat. Silakan coba lagi.");
+      setError(
+        "Terjadi kesalahan saat mengambil data obat. Silakan coba lagi."
+      );
       console.error("Error fetching drugs:", err);
       toast.error("Gagal mengambil data obat");
     } finally {
@@ -132,10 +135,10 @@ export default function DrugInfoPage() {
     // Add to recently viewed
     const storedRecents = localStorage.getItem("recentlyViewedDrugs");
     const recents = storedRecents ? JSON.parse(storedRecents) : [];
-    
+
     // Remove if already exists
-    const filteredRecents = recents.filter(item => item.name !== drug.name);
-    
+    const filteredRecents = recents.filter((item) => item.name !== drug.name);
+
     // Add to the beginning
     const updatedRecents = [drug, ...filteredRecents].slice(0, 10);
     localStorage.setItem("recentlyViewedDrugs", JSON.stringify(updatedRecents));
@@ -149,21 +152,25 @@ export default function DrugInfoPage() {
 
     // Always include first page
     pages.push(1);
-    
+
     // Current page area
-    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+    for (
+      let i = Math.max(2, currentPage - delta);
+      i <= Math.min(totalPages - 1, currentPage + delta);
+      i++
+    ) {
       pages.push(i);
     }
-    
+
     // Always include last page if there's more than one page
     if (totalPages > 1) {
       pages.push(totalPages);
     }
-    
+
     // Add ellipses
     const result = [];
     let prev = 0;
-    
+
     for (const page of pages) {
       if (prev && page - prev > 1) {
         result.push("...");
@@ -171,7 +178,7 @@ export default function DrugInfoPage() {
       result.push(page);
       prev = page;
     }
-    
+
     return result;
   };
 
@@ -186,11 +193,11 @@ export default function DrugInfoPage() {
             Informasi Obat
           </h1>
           <p className="text-slate-600 max-w-md mx-auto">
-            Cari dan temukan informasi lengkap tentang obat, komposisi, indikasi, 
-            dosis, efek samping, dan interaksi.
+            Cari dan temukan informasi lengkap tentang obat, komposisi,
+            indikasi, dosis, efek samping, dan interaksi.
           </p>
         </div>
-        
+
         <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
           <div className="flex space-x-2">
             <div className="relative flex-1">
@@ -203,8 +210,8 @@ export default function DrugInfoPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="h-12 px-6 rounded-lg bg-indigo-600 hover:bg-indigo-700"
             >
               Cari
@@ -214,12 +221,14 @@ export default function DrugInfoPage() {
 
         {recentlyViewed.length > 0 && (
           <div className="mt-8 text-center">
-            <p className="text-sm text-slate-500 mb-4">Pencarian terakhir Anda:</p>
+            <p className="text-sm text-slate-500 mb-4">
+              Pencarian terakhir Anda:
+            </p>
             <div className="flex flex-wrap gap-2 justify-center">
               {recentlyViewed.slice(0, 5).map((drug, idx) => (
-                <Button 
-                  key={idx} 
-                  variant="outline" 
+                <Button
+                  key={idx}
+                  variant="outline"
                   size="sm"
                   className="border-slate-300 hover:bg-indigo-50 hover:text-indigo-700"
                   onClick={() => {
@@ -303,7 +312,9 @@ export default function DrugInfoPage() {
                 </ScrollArea>
                 <SheetFooter className="pt-4">
                   <SheetClose asChild>
-                    <Button variant="outline" className="w-full">Tutup</Button>
+                    <Button variant="outline" className="w-full">
+                      Tutup
+                    </Button>
                   </SheetClose>
                 </SheetFooter>
               </SheetContent>
@@ -331,16 +342,16 @@ export default function DrugInfoPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="bg-indigo-600 hover:bg-indigo-700 hidden sm:flex"
                 >
                   Cari
                 </Button>
                 {searchTerm && (
-                  <Button 
-                    variant="outline" 
-                    type="button" 
+                  <Button
+                    variant="outline"
+                    type="button"
                     className="px-2 border-slate-300"
                     onClick={() => {
                       setSearchTerm("");
@@ -388,7 +399,9 @@ export default function DrugInfoPage() {
                 <div className="inline-flex items-center justify-center p-3 bg-red-100 rounded-full mb-4">
                   <MdOutlineSearch className="h-6 w-6 text-red-600" />
                 </div>
-                <h3 className="text-lg font-medium text-slate-800 mb-2">Terjadi Kesalahan</h3>
+                <h3 className="text-lg font-medium text-slate-800 mb-2">
+                  Terjadi Kesalahan
+                </h3>
                 <p className="text-slate-600 max-w-md mx-auto">{error}</p>
                 <Button onClick={() => fetchDrugs()} className="mt-4">
                   Coba Lagi
@@ -406,8 +419,8 @@ export default function DrugInfoPage() {
                   Tidak Ditemukan
                 </h3>
                 <p className="text-slate-600 max-w-md mx-auto">
-                  Kami tidak menemukan data obat yang sesuai dengan pencarian "{searchTerm}".
-                  Silakan coba dengan kata kunci lain.
+                  Kami tidak menemukan data obat yang sesuai dengan pencarian "
+                  {searchTerm}". Silakan coba dengan kata kunci lain.
                 </p>
               </CardContent>
             )}
@@ -420,10 +433,18 @@ export default function DrugInfoPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-slate-50 hover:bg-slate-50">
-                        <TableHead className="font-semibold text-slate-700">Nama Generik</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Nama Merek</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Produsen</TableHead>
-                        <TableHead className="w-[100px] text-right">Aksi</TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Nama Generik
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Nama Merek
+                        </TableHead>
+                        <TableHead className="font-semibold text-slate-700">
+                          Produsen
+                        </TableHead>
+                        <TableHead className="w-[100px] text-right">
+                          Aksi
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -433,7 +454,9 @@ export default function DrugInfoPage() {
                           className="group cursor-pointer hover:bg-indigo-50/30 transition-colors"
                           onClick={() => {
                             handleViewDrug(drug);
-                            router.push(`/drug-info/${encodeURIComponent(drug.name)}`);
+                            router.push(
+                              `/drug-info/${encodeURIComponent(drug.name)}`
+                            );
                           }}
                         >
                           <TableCell className="font-medium text-indigo-900">
@@ -443,7 +466,9 @@ export default function DrugInfoPage() {
                             {drug.brandName !== drug.genericName ? (
                               drug.brandName
                             ) : (
-                              <span className="text-slate-500 italic">Generic</span>
+                              <span className="text-slate-500 italic">
+                                Generic
+                              </span>
                             )}
                           </TableCell>
                           <TableCell
@@ -460,7 +485,9 @@ export default function DrugInfoPage() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleViewDrug(drug);
-                                router.push(`/drug-info/${encodeURIComponent(drug.name)}`);
+                                router.push(
+                                  `/drug-info/${encodeURIComponent(drug.name)}`
+                                );
                               }}
                             >
                               <span className="mr-1">Detail</span>
@@ -472,16 +499,18 @@ export default function DrugInfoPage() {
                     </TableBody>
                   </Table>
                 </div>
-                
+
                 {/* Mobile List View */}
                 <div className="md:hidden divide-y divide-slate-100">
                   {drugs.map((drug, idx) => (
-                    <div 
-                      key={idx} 
+                    <div
+                      key={idx}
                       className="p-4 hover:bg-slate-50 active:bg-slate-100 transition-colors cursor-pointer"
                       onClick={() => {
                         handleViewDrug(drug);
-                        router.push(`/drug-info/${encodeURIComponent(drug.name)}`);
+                        router.push(
+                          `/drug-info/${encodeURIComponent(drug.name)}`
+                        );
                       }}
                     >
                       <div className="flex items-start justify-between">
@@ -495,9 +524,12 @@ export default function DrugInfoPage() {
                               : "Generik"}
                           </p>
                           <div className="flex items-center mt-1">
-                            <Badge variant="outline" className="text-xs border-slate-200 text-slate-600">
-                              {drug.manufacturer.length > 20 
-                                ? drug.manufacturer.substring(0, 20) + '...' 
+                            <Badge
+                              variant="outline"
+                              className="text-xs border-slate-200 text-slate-600"
+                            >
+                              {drug.manufacturer.length > 20
+                                ? drug.manufacturer.substring(0, 20) + "..."
                                 : drug.manufacturer}
                             </Badge>
                           </div>
@@ -516,7 +548,10 @@ export default function DrugInfoPage() {
             {!loading && !error && drugs.length > 0 && (
               <CardFooter className="flex flex-col sm:flex-row justify-between items-center p-4 border-t border-slate-200 bg-slate-50/50">
                 <div className="text-sm text-slate-500 mb-4 sm:mb-0">
-                  Menampilkan {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)} - {Math.min(currentPage * itemsPerPage, totalItems)} dari {totalItems} obat
+                  Menampilkan{" "}
+                  {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)} -{" "}
+                  {Math.min(currentPage * itemsPerPage, totalItems)} dari{" "}
+                  {totalItems} obat
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -551,15 +586,22 @@ export default function DrugInfoPage() {
                             }
                           }}
                           className={
-                            currentPage <= 1 
-                              ? "pointer-events-none opacity-50" 
+                            currentPage <= 1
+                              ? "pointer-events-none opacity-50"
                               : "hover:bg-indigo-50 hover:text-indigo-700"
                           }
                         />
                       </PaginationItem>
 
                       {getPaginationRange().map((page, i) => (
-                        <PaginationItem key={i} className={i > 0 && i < getPaginationRange().length - 1 ? "hidden sm:inline-flex" : ""}>
+                        <PaginationItem
+                          key={i}
+                          className={
+                            i > 0 && i < getPaginationRange().length - 1
+                              ? "hidden sm:inline-flex"
+                              : ""
+                          }
+                        >
                           {page === "..." ? (
                             <PaginationEllipsis />
                           ) : (
@@ -571,9 +613,11 @@ export default function DrugInfoPage() {
                                 fetchDrugs();
                               }}
                               isActive={page === currentPage}
-                              className={page === currentPage 
-                                ? "bg-indigo-600 text-white hover:bg-indigo-700" 
-                                : "hover:bg-indigo-50 hover:text-indigo-700"}
+                              className={
+                                page === currentPage
+                                  ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                                  : "hover:bg-indigo-50 hover:text-indigo-700"
+                              }
                             >
                               {page}
                             </PaginationLink>
@@ -607,5 +651,45 @@ export default function DrugInfoPage() {
         </>
       )}
     </div>
+  );
+}
+
+// Loading fallback untuk Suspense
+function LoadingFallback() {
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-slate-800 flex items-center">
+          <div className="w-6 h-6 mr-2 rounded-full bg-slate-200 animate-pulse"></div>
+          Database Obat
+        </h2>
+      </div>
+
+      <Card className="border-none shadow-none bg-gradient-to-b from-indigo-50 to-white mb-6">
+        <CardContent className="px-6 py-12">
+          <div className="text-center mb-8">
+            <div className="bg-slate-200 animate-pulse p-3 rounded-full inline-flex justify-center items-center w-16 h-16 shadow-sm mb-6"></div>
+            <div className="h-8 w-48 bg-slate-200 animate-pulse rounded mx-auto mb-2"></div>
+            <div className="h-4 w-64 bg-slate-100 animate-pulse rounded mx-auto"></div>
+          </div>
+
+          <div className="max-w-2xl mx-auto">
+            <div className="flex space-x-2">
+              <div className="h-12 bg-slate-200 animate-pulse rounded-lg flex-1"></div>
+              <div className="h-12 w-24 bg-slate-300 animate-pulse rounded-lg"></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Komponen utama yang dibungkus dengan Suspense
+export default function DrugInfoPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <DrugInfoContent />
+    </Suspense>
   );
 }

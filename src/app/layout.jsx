@@ -45,9 +45,9 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata = {
-  title: "MedGuide - Asisten Farmasi Personal untuk Nisa",
+  title: "NisaCare - Asisten Farmasi Digital",
   description:
-    "Alternatif LexiComp dengan informasi obat lengkap, interaksi obat, kalkulator dosis, dan fitur farmasi lainnya.",
+    "Referensi farmakologi lengkap dengan informasi obat, interaksi, kalkulator dosis, dan fitur farmasi profesional lainnya.",
   icons: {
     icon: "/favicon.ico",
   },
