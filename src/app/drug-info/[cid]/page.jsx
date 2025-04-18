@@ -27,6 +27,10 @@ import {
   MdOutlineFoodBank,
   MdOutlineConstruction,
   MdOutlineBiotech,
+  MdOutlineHealthAndSafety,
+  MdOutlineMedicalInformation,
+  MdOpenInNew,
+  MdZoomIn,
   MdOutlineEco,
 } from "react-icons/md";
 
@@ -68,6 +72,8 @@ import {
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 export default function DrugDetailPage() {
   const params = useParams();
@@ -75,9 +81,11 @@ export default function DrugDetailPage() {
   const cid = params?.cid || "";
 
   const [compound, setCompound] = useState(null);
+  const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchCompoundData = async () => {
@@ -86,6 +94,8 @@ export default function DrugDetailPage() {
         const response = await axios.get(
           `/api/obat/${encodeURIComponent(cid)}`
         );
+
+        // Menggunakan data yang diformat untuk kebutuhan UI
         setCompound(response.data);
 
         // Update recently viewed
@@ -174,6 +184,12 @@ export default function DrugDetailPage() {
     window.print();
   };
 
+  const handleTabChange = (value) => {
+    setActiveTab(value);
+    // Scroll to top when tab changes
+    window.scrollTo(0, 0);
+  };
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -215,17 +231,17 @@ export default function DrugDetailPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div>
-            <Skeleton className="h-[300px] w-full rounded-lg" />
+            <Skeleton className="h-[250px] w-full rounded-lg" />
           </div>
-          <div className="lg:col-span-2">
+          <div className="md:col-span-1 lg:col-span-2">
             <Skeleton className="h-8 w-40 mb-4" />
             <Skeleton className="h-4 w-full mb-2" />
             <Skeleton className="h-4 w-full mb-2" />
             <Skeleton className="h-4 w-3/4" />
 
-            <div className="grid grid-cols-2 gap-4 mt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
               <Skeleton className="h-20 w-full" />
               <Skeleton className="h-20 w-full" />
               <Skeleton className="h-20 w-full" />
@@ -258,7 +274,7 @@ export default function DrugDetailPage() {
               Terjadi Kesalahan
             </h3>
             <p className="text-slate-500 mt-2">{error}</p>
-            <div className="flex justify-center mt-4 space-x-2">
+            <div className="flex flex-wrap justify-center mt-4 gap-2">
               <Button
                 variant="outline"
                 onClick={() => window.location.reload()}
@@ -308,8 +324,8 @@ export default function DrugDetailPage() {
   }
 
   const formatTableOfContents = (sections) => {
-    return Object.keys(sections).map((key) => {
-      const section = sections[key];
+    return Object.keys(compound.formatted.sections).map((key) => {
+      const section = compound.formatted.sections[key];
       return {
         title: key,
         description: section.description,
@@ -323,7 +339,7 @@ export default function DrugDetailPage() {
     });
   };
 
-  const tableOfContents = formatTableOfContents(compound.sections);
+  const tableOfContents = formatTableOfContents(compound.formatted.sections);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl print:py-0">
@@ -353,7 +369,17 @@ export default function DrugDetailPage() {
           <h1 className="text-2xl md:text-3xl font-semibold text-slate-800">
             {compound.name}
           </h1>
-          <p className="text-sm text-slate-500">CID: {compound.cid}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-slate-500">CID: {compound.cid}</p>
+            <a
+              href={compound.pubchemUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 hover:underline flex items-center"
+            >
+              <MdOpenInNew className="h-3 w-3 mr-0.5" /> PubChem
+            </a>
+          </div>
         </div>
 
         <div className="flex items-center space-x-2 print:hidden">
@@ -362,6 +388,7 @@ export default function DrugDetailPage() {
             size="icon"
             onClick={toggleFavorite}
             className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
+            aria-label={isFavorite ? "Hapus dari favorit" : "Tambah ke favorit"}
           >
             {isFavorite ? (
               <MdFavorite className="h-4 w-4" />
@@ -369,29 +396,105 @@ export default function DrugDetailPage() {
               <MdFavoriteBorder className="h-4 w-4" />
             )}
           </Button>
-          <Button variant="outline" size="icon" onClick={handleShare}>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleShare}
+            aria-label="Bagikan"
+          >
             <MdShare className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={handlePrint}>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handlePrint}
+            aria-label="Cetak"
+          >
             <MdOutlinePrint className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
+      {/* Mobile Tab Selection */}
+      <div className="md:hidden mb-6 print:hidden">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              {getTabName(activeTab)}
+              <MdKeyboardArrowDown className="ml-2 h-4 w-4" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="h-[40vh]">
+            <div className="grid gap-1 py-2">
+              <Button
+                variant={activeTab === "overview" ? "default" : "ghost"}
+                className="justify-start"
+                onClick={() => {
+                  handleTabChange("overview");
+                }}
+              >
+                Ringkasan
+              </Button>
+              <Button
+                variant={activeTab === "chemistry" ? "default" : "ghost"}
+                className="justify-start"
+                onClick={() => {
+                  handleTabChange("chemistry");
+                }}
+              >
+                Kimia
+              </Button>
+              <Button
+                variant={activeTab === "pharmacology" ? "default" : "ghost"}
+                className="justify-start"
+                onClick={() => {
+                  handleTabChange("pharmacology");
+                }}
+              >
+                Farmakologi & Klinis
+              </Button>
+              <Button
+                variant={activeTab === "safety" ? "default" : "ghost"}
+                className="justify-start"
+                onClick={() => {
+                  handleTabChange("safety");
+                }}
+              >
+                Keamanan
+              </Button>
+              <Button
+                variant={activeTab === "full" ? "default" : "ghost"}
+                className="justify-start"
+                onClick={() => {
+                  handleTabChange("full");
+                }}
+              >
+                Konten Lengkap
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
       {/* Main content with tabs */}
-      <Tabs defaultValue="overview" className="print:block">
-        <TabsList className="mb-6 print:hidden">
+      <Tabs
+        defaultValue="overview"
+        className="print:block"
+        value={activeTab}
+        onValueChange={handleTabChange}
+      >
+        <TabsList className="mb-6 print:hidden hidden md:flex">
           <TabsTrigger value="overview">Ringkasan</TabsTrigger>
           <TabsTrigger value="chemistry">Kimia</TabsTrigger>
-          <TabsTrigger value="pharmacology">Farmakologi</TabsTrigger>
+          <TabsTrigger value="pharmacology">Farmakologi & Klinis</TabsTrigger>
           <TabsTrigger value="safety">Keamanan</TabsTrigger>
           <TabsTrigger value="full">Konten Lengkap</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card className="md:col-span-1">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2">
                   <MdOutlineScience className="text-indigo-600" /> Struktur
@@ -399,15 +502,37 @@ export default function DrugDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col items-center text-center">
-                <div className="p-2 bg-white rounded-lg shadow-sm border">
-                  <Image
-                    src={compound.essential.structureUrl}
-                    alt={`Struktur kimia ${compound.name}`}
-                    width={200}
-                    height={200}
-                    className="mx-auto"
-                  />
-                </div>
+                <Dialog
+                  open={imageDialogOpen}
+                  onOpenChange={setImageDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <div className="p-2 bg-white rounded-lg shadow-sm border cursor-pointer group relative">
+                      <Image
+                        src={compound.essential.structureUrl}
+                        alt={`Struktur kimia ${compound.name}`}
+                        width={200}
+                        height={200}
+                        className="mx-auto"
+                      />
+                      <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                        <MdZoomIn className="h-8 w-8 text-indigo-600" />
+                      </div>
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl">
+                    <div className="flex justify-center p-4">
+                      <Image
+                        src={compound.essential.structureUrl}
+                        alt={`Struktur kimia ${compound.name}`}
+                        width={600}
+                        height={600}
+                        className="max-h-[80vh] w-auto object-contain"
+                      />
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 <div className="mt-4 w-full text-center">
                   <p className="font-medium">
                     {compound.essential.molecularFormula
@@ -433,7 +558,7 @@ export default function DrugDetailPage() {
               </CardContent>
             </Card>
 
-            <Card className="lg:col-span-2">
+            <Card className="md:col-span-1 lg:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <MdOutlineInfo className="text-indigo-600" /> Informasi Umum
@@ -449,6 +574,34 @@ export default function DrugDetailPage() {
                       {compound.essential.iupacName}
                     </p>
                   </div>
+
+                  {compound.fda && compound.fda.identification.genericName && (
+                    <div className="flex flex-col md:flex-row gap-4">
+                      {compound.fda.identification.genericName && (
+                        <div className="flex-1">
+                          <h3 className="text-sm font-medium text-slate-500">
+                            Nama Generik
+                          </h3>
+                          <p className="font-medium">
+                            {compound.fda.identification.genericName}
+                          </p>
+                        </div>
+                      )}
+                      {compound.fda.identification.brandName && (
+                        <div className="flex-1">
+                          <h3 className="text-sm font-medium text-slate-500">
+                            Nama Dagang
+                          </h3>
+                          <Badge
+                            variant="outline"
+                            className="bg-blue-50 text-blue-800 border-blue-200"
+                          >
+                            {compound.fda.identification.brandName}
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {compound.essential.synonyms[0] !== "N/A" && (
                     <div>
@@ -495,10 +648,44 @@ export default function DrugDetailPage() {
                     </div>
                   </div>
 
+                  {compound.fda && compound.fda.pharmacology && (
+                    <div className="pt-2">
+                      <h3 className="text-sm font-medium text-slate-500">
+                        Klasifikasi Farmakologi (FDA)
+                      </h3>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {compound.fda.pharmacology.mechanismOfAction && (
+                          <Badge
+                            variant="outline"
+                            className="bg-green-50 text-green-800 border-green-200"
+                          >
+                            {compound.fda.pharmacology.mechanismOfAction}
+                          </Badge>
+                        )}
+                        {compound.fda.pharmacology.physiologicEffect && (
+                          <Badge
+                            variant="outline"
+                            className="bg-blue-50 text-blue-800 border-blue-200"
+                          >
+                            {compound.fda.pharmacology.physiologicEffect}
+                          </Badge>
+                        )}
+                        {compound.fda.pharmacology.chemicalStructure && (
+                          <Badge
+                            variant="outline"
+                            className="bg-purple-50 text-purple-800 border-purple-200"
+                          >
+                            {compound.fda.pharmacology.chemicalStructure}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {compound.essential.useClassification !== "N/A" && (
                     <div className="pt-2">
                       <h3 className="text-sm font-medium text-slate-500">
-                        Klasifikasi Penggunaan
+                        Klasifikasi Penggunaan (PubChem)
                       </h3>
                       <p>{compound.essential.useClassification}</p>
                     </div>
@@ -508,33 +695,112 @@ export default function DrugDetailPage() {
             </Card>
           </div>
 
-          {compound.essential.pharmacology !== "N/A" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MdOutlineMedication className="text-indigo-600" /> Indikasi &
+                Penggunaan
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {compound.fda && compound.fda.clinical.indicationsAndUsage ? (
+                <>
+                  <div className="bg-blue-50 p-3 rounded-md border border-blue-200 mb-2">
+                    <div className="flex items-center mb-2">
+                      <Badge
+                        variant="outline"
+                        className="bg-white text-blue-800 border-blue-200"
+                      >
+                        Sumber: FDA
+                      </Badge>
+                    </div>
+                    <p className="text-slate-700 whitespace-pre-line">
+                      {compound.fda.clinical.indicationsAndUsage}
+                    </p>
+                  </div>
+                  {compound.essential.drugIndication !== "N/A" && (
+                    <>
+                      <Separator />
+                      <div className="mt-2">
+                        <div className="flex items-center mb-2">
+                          <Badge
+                            variant="outline"
+                            className="bg-white text-slate-800 border-slate-200"
+                          >
+                            Sumber: PubChem
+                          </Badge>
+                        </div>
+                        <p className="text-slate-700 whitespace-pre-line">
+                          {compound.essential.drugIndication}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : compound.essential.drugIndication !== "N/A" ? (
+                <p className="text-slate-700 whitespace-pre-line">
+                  {compound.essential.drugIndication}
+                </p>
+              ) : (
+                <p className="text-slate-500 italic">
+                  Informasi indikasi dan penggunaan tidak tersedia
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {(compound.essential.pharmacology !== "N/A" ||
+            (compound.fda && compound.fda.clinical.purpose)) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MdOutlineMedication className="text-indigo-600" />{" "}
-                  Farmakologi
+                  <MdOutlineBiotech className="text-indigo-600" /> Farmakologi
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-slate-700 whitespace-pre-line">
-                  {compound.essential.pharmacology}
-                </p>
+              <CardContent className="space-y-4">
+                {compound.fda && compound.fda.clinical.purpose && (
+                  <div className="bg-blue-50 p-3 rounded-md border border-blue-200 mb-2">
+                    <div className="flex items-center mb-2">
+                      <Badge
+                        variant="outline"
+                        className="bg-white text-blue-800 border-blue-200"
+                      >
+                        Tujuan Terapeutik (FDA)
+                      </Badge>
+                    </div>
+                    <p className="font-medium text-slate-800">
+                      {compound.fda.clinical.purpose}
+                    </p>
+                  </div>
+                )}
+
+                {compound.essential.pharmacology !== "N/A" && (
+                  <div>
+                    {compound.fda && compound.fda.clinical.purpose && (
+                      <Separator />
+                    )}
+                    <div className="mt-2">
+                      <p className="text-slate-700 whitespace-pre-line">
+                        {compound.essential.pharmacology}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
 
-          {compound.essential.drugIndication !== "N/A" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Indikasi & Penggunaan</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-700 whitespace-pre-line">
-                  {compound.essential.drugIndication}
-                </p>
-              </CardContent>
-            </Card>
+          {compound.fda && compound.fda.clinical.warnings && (
+            <Alert
+              variant="destructive"
+              className="bg-red-50 border-red-200 text-red-800"
+            >
+              <MdOutlineWarning className="h-5 w-5 text-red-600" />
+              <AlertTitle>Peringatan FDA</AlertTitle>
+              <AlertDescription className="mt-2 whitespace-pre-line text-sm">
+                {compound.fda.clinical.warnings}
+              </AlertDescription>
+            </Alert>
           )}
 
           {compound.essential.toxicity !== "N/A" && (
@@ -549,12 +815,55 @@ export default function DrugDetailPage() {
               </AlertDescription>
             </Alert>
           )}
+
+          {compound.fda && compound.fda.identification.manufacturerName && (
+            <Card className="bg-slate-50 border-slate-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-slate-800">
+                  <MdOutlineMedicalInformation className="text-slate-600" />{" "}
+                  Informasi Produk FDA
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <h3 className="font-medium text-slate-500">Produsen</h3>
+                    <p>{compound.fda.identification.manufacturerName}</p>
+                  </div>
+                  {compound.fda.identification.route && (
+                    <div>
+                      <h3 className="font-medium text-slate-500">
+                        Rute Pemberian
+                      </h3>
+                      <p>{compound.fda.identification.route}</p>
+                    </div>
+                  )}
+                  {compound.fda.identification.productType && (
+                    <div>
+                      <h3 className="font-medium text-slate-500">
+                        Tipe Produk
+                      </h3>
+                      <p>{compound.fda.identification.productType}</p>
+                    </div>
+                  )}
+                  {compound.fda.clinical.activeIngredient && (
+                    <div className="col-span-1 sm:col-span-2 md:col-span-3">
+                      <h3 className="font-medium text-slate-500">
+                        Bahan Aktif
+                      </h3>
+                      <p>{compound.fda.clinical.activeIngredient}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Chemistry Tab */}
         <TabsContent value="chemistry" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card className="md:col-span-1">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <MdOutlineScience className="text-indigo-600" /> Struktur
@@ -569,12 +878,13 @@ export default function DrugDetailPage() {
                     width={200}
                     height={200}
                     className="mx-auto"
+                    onClick={() => setImageDialogOpen(true)}
                   />
                 </div>
               </CardContent>
             </Card>
 
-            <div className="lg:col-span-2">
+            <div className="md:col-span-1 lg:col-span-2">
               <Card>
                 <CardHeader className="border-b pb-3">
                   <CardTitle className="flex items-center gap-2">
@@ -583,7 +893,9 @@ export default function DrugDetailPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4">
-                  <ChemicalPropertiesTable compound={compound} />
+                  <ScrollArea className="w-full overflow-auto">
+                    <ChemicalPropertiesTable compound={compound} />
+                  </ScrollArea>
                 </CardContent>
               </Card>
             </div>
@@ -605,16 +917,20 @@ export default function DrugDetailPage() {
 
               <div>
                 <h3 className="text-sm font-medium text-slate-500">InChIKey</h3>
-                <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto">
-                  {compound.essential.inchiKey}
-                </p>
+                <div className="relative">
+                  <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto">
+                    {compound.essential.inchiKey}
+                  </p>
+                </div>
               </div>
 
               <div>
                 <h3 className="text-sm font-medium text-slate-500">SMILES</h3>
-                <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto max-h-16">
-                  {compound.essential.canonicalSmiles}
-                </p>
+                <div className="relative">
+                  <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto max-h-16">
+                    {compound.essential.canonicalSmiles}
+                  </p>
+                </div>
               </div>
 
               {compound.essential.synonyms[0] !== "N/A" && (
@@ -668,12 +984,93 @@ export default function DrugDetailPage() {
 
         {/* Pharmacology Tab */}
         <TabsContent value="pharmacology" className="space-y-6">
+          {compound.fda && (
+            <Card>
+              <CardHeader className="border-b pb-3 bg-blue-50">
+                <CardTitle className="flex items-center gap-2 text-blue-800">
+                  <MdOutlineHealthAndSafety className="text-blue-600" />{" "}
+                  Informasi Klinis FDA
+                </CardTitle>
+                <CardDescription>
+                  Data dari U.S. FDA untuk penggunaan klinis
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="divide-y">
+                {compound.fda.clinical.purpose && (
+                  <div className="py-4">
+                    <h3 className="font-medium text-slate-800 mb-2">
+                      Tujuan Terapeutik
+                    </h3>
+                    <p className="text-slate-700">
+                      {compound.fda.clinical.purpose}
+                    </p>
+                  </div>
+                )}
+
+                {compound.fda.clinical.indicationsAndUsage && (
+                  <div className="py-4">
+                    <h3 className="font-medium text-slate-800 mb-2">
+                      Indikasi & Penggunaan
+                    </h3>
+                    <p className="text-slate-700 whitespace-pre-line">
+                      {compound.fda.clinical.indicationsAndUsage}
+                    </p>
+                  </div>
+                )}
+
+                {compound.fda.clinical.dosageAndAdministration && (
+                  <div className="py-4">
+                    <h3 className="font-medium text-slate-800 mb-2">
+                      Dosis & Cara Pemberian
+                    </h3>
+                    <p className="text-slate-700 whitespace-pre-line">
+                      {compound.fda.clinical.dosageAndAdministration}
+                    </p>
+                  </div>
+                )}
+
+                {compound.fda.clinical.pregnancy && (
+                  <div className="py-4">
+                    <h3 className="font-medium text-slate-800 mb-2">
+                      Kehamilan & Menyusui
+                    </h3>
+                    <p className="text-slate-700 whitespace-pre-line">
+                      {compound.fda.clinical.pregnancy}
+                    </p>
+                  </div>
+                )}
+
+                {compound.fda.clinical.activeIngredient && (
+                  <div className="py-4">
+                    <h3 className="font-medium text-slate-800 mb-2">
+                      Bahan Aktif
+                    </h3>
+                    <p className="text-slate-700">
+                      {compound.fda.clinical.activeIngredient}
+                    </p>
+                  </div>
+                )}
+
+                {compound.fda.other.inactiveIngredients && (
+                  <div className="py-4">
+                    <h3 className="font-medium text-slate-800 mb-2">
+                      Bahan Tidak Aktif
+                    </h3>
+                    <p className="text-slate-700 whitespace-pre-line">
+                      {compound.fda.other.inactiveIngredients}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {compound.essential.pharmacology !== "N/A" ? (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MdOutlineMedication className="text-indigo-600" />{" "}
-                  Farmakologi
+                  <MdOutlineBiotech className="text-indigo-600" /> Farmakologi
+                  (PubChem)
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -683,34 +1080,85 @@ export default function DrugDetailPage() {
               </CardContent>
             </Card>
           ) : (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <div className="inline-flex items-center justify-center rounded-full bg-slate-100 p-4 mb-4">
-                  <MdOutlineInfo className="h-6 w-6 text-slate-600" />
-                </div>
-                <h3 className="text-lg font-medium text-slate-800">
-                  Informasi Farmakologi Tidak Tersedia
-                </h3>
-                <p className="text-slate-500 mt-2">
-                  Data farmakologi untuk {compound.name} belum tersedia di
-                  database PubChem.
-                </p>
-              </CardContent>
-            </Card>
+            !compound.fda && (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <div className="inline-flex items-center justify-center rounded-full bg-slate-100 p-4 mb-4">
+                    <MdOutlineInfo className="h-6 w-6 text-slate-600" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-800">
+                    Informasi Farmakologi Tidak Tersedia
+                  </h3>
+                  <p className="text-slate-500 mt-2">
+                    Data farmakologi untuk {compound.name} belum tersedia di
+                    database PubChem atau FDA.
+                  </p>
+                </CardContent>
+              </Card>
+            )
           )}
 
-          {compound.essential.drugIndication !== "N/A" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Indikasi & Penggunaan</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-700 whitespace-pre-line">
-                  {compound.essential.drugIndication}
-                </p>
-              </CardContent>
-            </Card>
-          )}
+          {compound.fda &&
+            compound.fda.pharmacology &&
+            (compound.fda.pharmacology.mechanismOfAction ||
+              compound.fda.pharmacology.chemicalStructure ||
+              compound.fda.pharmacology.physiologicEffect) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Klasifikasi Farmakologi FDA</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {compound.fda.pharmacology.mechanismOfAction && (
+                      <div>
+                        <h3 className="font-medium text-slate-700">
+                          Mekanisme Aksi
+                        </h3>
+                        <Badge className="mt-1 bg-green-100 hover:bg-green-200 text-green-800 border-none">
+                          {compound.fda.pharmacology.mechanismOfAction}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {compound.fda.pharmacology.chemicalStructure && (
+                      <div>
+                        <h3 className="font-medium text-slate-700">
+                          Struktur Kimia
+                        </h3>
+                        <Badge className="mt-1 bg-purple-100 hover:bg-purple-200 text-purple-800 border-none">
+                          {compound.fda.pharmacology.chemicalStructure}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {compound.fda.pharmacology.physiologicEffect && (
+                      <div>
+                        <h3 className="font-medium text-slate-700">
+                          Efek Fisiologis
+                        </h3>
+                        <Badge className="mt-1 bg-blue-100 hover:bg-blue-200 text-blue-800 border-none">
+                          {compound.fda.pharmacology.physiologicEffect}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+          {compound.essential.drugIndication !== "N/A" &&
+            !compound.fda?.clinical.indicationsAndUsage && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Indikasi & Penggunaan (PubChem)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-slate-700 whitespace-pre-line">
+                    {compound.essential.drugIndication}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
           {renderSectionIfExists(
             compound,
@@ -731,6 +1179,105 @@ export default function DrugDetailPage() {
 
         {/* Safety Tab */}
         <TabsContent value="safety" className="space-y-6">
+          {compound.fda && compound.fda.clinical.warnings && (
+            <Card>
+              <CardHeader className="bg-red-50">
+                <CardTitle className="flex items-center gap-2 text-red-800">
+                  <MdOutlineWarning className="text-red-600" /> Peringatan FDA
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <p className="text-slate-700 whitespace-pre-line">
+                  {compound.fda.clinical.warnings}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {compound.fda && (
+            <Accordion type="multiple" defaultValue={["do-not-use"]}>
+              {compound.fda.safety.doNotUse && (
+                <AccordionItem value="do-not-use">
+                  <AccordionTrigger className="text-red-700 hover:no-underline">
+                    <span className="flex items-center">
+                      <MdOutlineWarningAmber className="mr-2" /> JANGAN
+                      DIGUNAKAN JIKA
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="bg-red-50 p-3 rounded-md text-red-900">
+                    {compound.fda.safety.doNotUse}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {compound.fda.safety.stopUse && (
+                <AccordionItem value="stop-use">
+                  <AccordionTrigger className="text-amber-700 hover:no-underline">
+                    <span className="flex items-center">
+                      <MdOutlineWarningAmber className="mr-2" /> HENTIKAN
+                      PENGGUNAAN JIKA
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="bg-amber-50 p-3 rounded-md text-amber-900">
+                    {compound.fda.safety.stopUse}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {compound.fda.safety.askDoctor && (
+                <AccordionItem value="ask-doctor">
+                  <AccordionTrigger>
+                    <span className="flex items-center gap-2">
+                      Tanyakan Dokter
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="bg-slate-50 p-3 rounded-md">
+                    {compound.fda.safety.askDoctor}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {compound.fda.safety.askDoctorOrPharmacist && (
+                <AccordionItem value="ask-doctor-pharmacist">
+                  <AccordionTrigger>
+                    <span className="flex items-center gap-2">
+                      Tanyakan Dokter atau Apoteker
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="bg-slate-50 p-3 rounded-md">
+                    {compound.fda.safety.askDoctorOrPharmacist}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {compound.fda.safety.whenUsing && (
+                <AccordionItem value="when-using">
+                  <AccordionTrigger>
+                    <span className="flex items-center gap-2">
+                      Ketika Menggunakan
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="bg-slate-50 p-3 rounded-md">
+                    {compound.fda.safety.whenUsing}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {compound.fda.safety.keepOutOfReachOfChildren && (
+                <AccordionItem value="children-warning">
+                  <AccordionTrigger>
+                    <span className="flex items-center gap-2">
+                      Jauhkan dari Jangkauan Anak-anak
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="bg-slate-50 p-3 rounded-md">
+                    {compound.fda.safety.keepOutOfReachOfChildren}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+            </Accordion>
+          )}
+
           {compound.essential.safetyHazards !== "N/A" ||
           compound.essential.toxicity !== "N/A" ? (
             <>
@@ -739,7 +1286,7 @@ export default function DrugDetailPage() {
                   <CardHeader className="bg-amber-50">
                     <CardTitle className="flex items-center gap-2 text-amber-800">
                       <MdOutlineSecurity className="text-amber-600" /> Keamanan
-                      & Bahaya
+                      & Bahaya (PubChem)
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-4">
@@ -755,7 +1302,7 @@ export default function DrugDetailPage() {
                   <CardHeader className="bg-red-50">
                     <CardTitle className="flex items-center gap-2 text-red-800">
                       <MdOutlineWarningAmber className="text-red-600" />{" "}
-                      Toksisitas
+                      Toksisitas (PubChem)
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-4">
@@ -783,20 +1330,22 @@ export default function DrugDetailPage() {
               )}
             </>
           ) : (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <div className="inline-flex items-center justify-center rounded-full bg-slate-100 p-4 mb-4">
-                  <MdOutlineInfo className="h-6 w-6 text-slate-600" />
-                </div>
-                <h3 className="text-lg font-medium text-slate-800">
-                  Informasi Keamanan Tidak Tersedia
-                </h3>
-                <p className="text-slate-500 mt-2">
-                  Data keamanan & toksisitas untuk {compound.name} belum
-                  tersedia di database PubChem.
-                </p>
-              </CardContent>
-            </Card>
+            !compound.fda && (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <div className="inline-flex items-center justify-center rounded-full bg-slate-100 p-4 mb-4">
+                    <MdOutlineInfo className="h-6 w-6 text-slate-600" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-800">
+                    Informasi Keamanan Tidak Tersedia
+                  </h3>
+                  <p className="text-slate-500 mt-2">
+                    Data keamanan & toksisitas untuk {compound.name} belum
+                    tersedia di database PubChem atau FDA.
+                  </p>
+                </CardContent>
+              </Card>
+            )
           )}
         </TabsContent>
 
@@ -806,11 +1355,56 @@ export default function DrugDetailPage() {
             <CardHeader>
               <CardTitle className="text-xl">Daftar Isi</CardTitle>
               <CardDescription>
-                Konten lengkap dari PubChem untuk {compound.name}
+                Konten lengkap dari PubChem dan FDA untuk {compound.name}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {compound.fda && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Badge className="h-6 w-6 rounded-full flex items-center justify-center p-0 bg-blue-600">
+                        FDA
+                      </Badge>
+                      <Link
+                        href="#section-fda"
+                        className="font-medium text-blue-600 hover:underline"
+                      >
+                        Informasi FDA
+                      </Link>
+                    </div>
+                    <div className="pl-8 space-y-1">
+                      <div className="flex items-center gap-1">
+                        <MdOutlineChevronRight className="text-slate-400 h-4 w-4" />
+                        <Link
+                          href="#section-fda-clinical"
+                          className="text-sm text-slate-600 hover:text-blue-600 hover:underline"
+                        >
+                          Informasi Klinis
+                        </Link>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MdOutlineChevronRight className="text-slate-400 h-4 w-4" />
+                        <Link
+                          href="#section-fda-safety"
+                          className="text-sm text-slate-600 hover:text-blue-600 hover:underline"
+                        >
+                          Keamanan & Peringatan
+                        </Link>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MdOutlineChevronRight className="text-slate-400 h-4 w-4" />
+                        <Link
+                          href="#section-fda-product"
+                          className="text-sm text-slate-600 hover:text-blue-600 hover:underline"
+                        >
+                          Informasi Produk
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {tableOfContents.map((section, index) => (
                   <div key={index} className="space-y-2">
                     <div className="flex items-center gap-2">
@@ -848,7 +1442,369 @@ export default function DrugDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Render all sections */}
+          {compound.fda && (
+            <section id="section-fda" className="scroll-mt-16">
+              <Card className="border-blue-200">
+                <CardHeader className="bg-blue-50 border-b border-blue-200">
+                  <CardTitle className="flex items-center gap-2 text-blue-800">
+                    <MdOutlineHealthAndSafety className="text-blue-600" />{" "}
+                    Informasi FDA
+                  </CardTitle>
+                  <CardDescription>
+                    Data dari U.S. Food and Drug Administration untuk{" "}
+                    {compound.fda.identification.genericName || compound.name}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div
+                    id="section-fda-clinical"
+                    className="scroll-mt-20 p-6 border-b"
+                  >
+                    <h3 className="text-xl font-semibold mb-4 text-blue-800">
+                      Informasi Klinis
+                    </h3>
+
+                    <Accordion
+                      type="multiple"
+                      defaultValue={["purpose", "indications", "dosage"]}
+                      className="space-y-2"
+                    >
+                      {compound.fda.clinical.purpose && (
+                        <AccordionItem
+                          value="purpose"
+                          className="border border-blue-100 rounded-md"
+                        >
+                          <AccordionTrigger className="px-4 hover:bg-blue-50 rounded-t-md">
+                            Tujuan Terapeutik
+                          </AccordionTrigger>
+                          <AccordionContent className="bg-white px-4">
+                            <p className="py-2">
+                              {compound.fda.clinical.purpose}
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+
+                      {compound.fda.clinical.indicationsAndUsage && (
+                        <AccordionItem
+                          value="indications"
+                          className="border border-blue-100 rounded-md"
+                        >
+                          <AccordionTrigger className="px-4 hover:bg-blue-50 rounded-t-md">
+                            Indikasi & Penggunaan
+                          </AccordionTrigger>
+                          <AccordionContent className="bg-white px-4">
+                            <p className="py-2 whitespace-pre-line">
+                              {compound.fda.clinical.indicationsAndUsage}
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+
+                      {compound.fda.clinical.dosageAndAdministration && (
+                        <AccordionItem
+                          value="dosage"
+                          className="border border-blue-100 rounded-md"
+                        >
+                          <AccordionTrigger className="px-4 hover:bg-blue-50 rounded-t-md">
+                            Dosis & Administrasi
+                          </AccordionTrigger>
+                          <AccordionContent className="bg-white px-4">
+                            <p className="py-2 whitespace-pre-line">
+                              {compound.fda.clinical.dosageAndAdministration}
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+
+                      {compound.fda.clinical.pregnancy && (
+                        <AccordionItem
+                          value="pregnancy"
+                          className="border border-blue-100 rounded-md"
+                        >
+                          <AccordionTrigger className="px-4 hover:bg-blue-50 rounded-t-md">
+                            Kehamilan & Menyusui
+                          </AccordionTrigger>
+                          <AccordionContent className="bg-white px-4">
+                            <p className="py-2 whitespace-pre-line">
+                              {compound.fda.clinical.pregnancy}
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+
+                      {compound.fda.clinical.activeIngredient && (
+                        <AccordionItem
+                          value="active"
+                          className="border border-blue-100 rounded-md"
+                        >
+                          <AccordionTrigger className="px-4 hover:bg-blue-50 rounded-t-md">
+                            Bahan Aktif
+                          </AccordionTrigger>
+                          <AccordionContent className="bg-white px-4">
+                            <p className="py-2">
+                              {compound.fda.clinical.activeIngredient}
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+
+                      {compound.fda.other.inactiveIngredients && (
+                        <AccordionItem
+                          value="inactive"
+                          className="border border-blue-100 rounded-md"
+                        >
+                          <AccordionTrigger className="px-4 hover:bg-blue-50 rounded-t-md">
+                            Bahan Tidak Aktif
+                          </AccordionTrigger>
+                          <AccordionContent className="bg-white px-4">
+                            <p className="py-2 whitespace-pre-line">
+                              {compound.fda.other.inactiveIngredients}
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+                    </Accordion>
+                  </div>
+
+                  <div
+                    id="section-fda-safety"
+                    className="scroll-mt-20 p-6 border-b"
+                  >
+                    <h3 className="text-xl font-semibold mb-4 text-blue-800">
+                      Keamanan & Peringatan
+                    </h3>
+
+                    {compound.fda.clinical.warnings && (
+                      <div className="mb-6">
+                        <h4 className="text-lg font-medium text-red-800 mb-2">
+                          Peringatan
+                        </h4>
+                        <div className="bg-red-50 p-4 rounded-md border border-red-200 text-red-900 whitespace-pre-line">
+                          {compound.fda.clinical.warnings}
+                        </div>
+                      </div>
+                    )}
+
+                    <Accordion type="multiple" className="space-y-2">
+                      {compound.fda.safety.doNotUse && (
+                        <AccordionItem
+                          value="do-not-use"
+                          className="border border-red-100 rounded-md"
+                        >
+                          <AccordionTrigger className="px-4 hover:bg-red-50 rounded-t-md text-red-800">
+                            <span className="flex items-center">
+                              <MdOutlineWarningAmber className="mr-2" /> JANGAN
+                              DIGUNAKAN JIKA
+                            </span>
+                          </AccordionTrigger>
+                          <AccordionContent className="bg-white px-4">
+                            <p className="py-2 whitespace-pre-line">
+                              {compound.fda.safety.doNotUse}
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+
+                      {compound.fda.safety.stopUse && (
+                        <AccordionItem
+                          value="stop-use"
+                          className="border border-amber-100 rounded-md"
+                        >
+                          <AccordionTrigger className="px-4 hover:bg-amber-50 rounded-t-md text-amber-800">
+                            <span className="flex items-center">
+                              <MdOutlineWarningAmber className="mr-2" />{" "}
+                              HENTIKAN PENGGUNAAN JIKA
+                            </span>
+                          </AccordionTrigger>
+                          <AccordionContent className="bg-white px-4">
+                            <p className="py-2 whitespace-pre-line">
+                              {compound.fda.safety.stopUse}
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+
+                      {compound.fda.safety.askDoctor && (
+                        <AccordionItem
+                          value="ask-doctor"
+                          className="border border-slate-100 rounded-md"
+                        >
+                          <AccordionTrigger className="px-4 hover:bg-slate-50 rounded-t-md">
+                            Tanyakan Dokter
+                          </AccordionTrigger>
+                          <AccordionContent className="bg-white px-4">
+                            <p className="py-2 whitespace-pre-line">
+                              {compound.fda.safety.askDoctor}
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+
+                      {compound.fda.safety.askDoctorOrPharmacist && (
+                        <AccordionItem
+                          value="ask-doctor-pharmacist"
+                          className="border border-slate-100 rounded-md"
+                        >
+                          <AccordionTrigger className="px-4 hover:bg-slate-50 rounded-t-md">
+                            Tanyakan Dokter atau Apoteker
+                          </AccordionTrigger>
+                          <AccordionContent className="bg-white px-4">
+                            <p className="py-2 whitespace-pre-line">
+                              {compound.fda.safety.askDoctorOrPharmacist}
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+
+                      {compound.fda.safety.whenUsing && (
+                        <AccordionItem
+                          value="when-using"
+                          className="border border-slate-100 rounded-md"
+                        >
+                          <AccordionTrigger className="px-4 hover:bg-slate-50 rounded-t-md">
+                            Ketika Menggunakan
+                          </AccordionTrigger>
+                          <AccordionContent className="bg-white px-4">
+                            <p className="py-2 whitespace-pre-line">
+                              {compound.fda.safety.whenUsing}
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+
+                      {compound.fda.safety.keepOutOfReachOfChildren && (
+                        <AccordionItem
+                          value="children"
+                          className="border border-slate-100 rounded-md"
+                        >
+                          <AccordionTrigger className="px-4 hover:bg-slate-50 rounded-t-md">
+                            Jauhkan dari Jangkauan Anak-anak
+                          </AccordionTrigger>
+                          <AccordionContent className="bg-white px-4">
+                            <p className="py-2 whitespace-pre-line">
+                              {compound.fda.safety.keepOutOfReachOfChildren}
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+                    </Accordion>
+                  </div>
+
+                  <div id="section-fda-product" className="scroll-mt-20 p-6">
+                    <h3 className="text-xl font-semibold mb-4 text-blue-800">
+                      Informasi Produk
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                      {compound.fda.identification.brandName && (
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-500">
+                            Nama Dagang
+                          </h4>
+                          <p className="font-medium">
+                            {compound.fda.identification.brandName}
+                          </p>
+                        </div>
+                      )}
+
+                      {compound.fda.identification.genericName && (
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-500">
+                            Nama Generik
+                          </h4>
+                          <p className="font-medium">
+                            {compound.fda.identification.genericName}
+                          </p>
+                        </div>
+                      )}
+
+                      {compound.fda.identification.manufacturerName && (
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-500">
+                            Produsen
+                          </h4>
+                          <p>{compound.fda.identification.manufacturerName}</p>
+                        </div>
+                      )}
+
+                      {compound.fda.identification.productType && (
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-500">
+                            Tipe Produk
+                          </h4>
+                          <p>{compound.fda.identification.productType}</p>
+                        </div>
+                      )}
+
+                      {compound.fda.identification.route && (
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-500">
+                            Rute Pemberian
+                          </h4>
+                          <p>{compound.fda.identification.route}</p>
+                        </div>
+                      )}
+
+                      {compound.fda.identification.substanceName && (
+                        <div>
+                          <h4 className="text-sm font-medium text-slate-500">
+                            Nama Substansi
+                          </h4>
+                          <p>{compound.fda.identification.substanceName}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {compound.fda.identification.ndc &&
+                      compound.fda.identification.ndc.length > 0 && (
+                        <div className="mt-6">
+                          <h4 className="text-sm font-medium text-slate-500 mb-2">
+                            Kode NDC
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {compound.fda.identification.ndc.map(
+                              (code, idx) => (
+                                <Badge
+                                  key={idx}
+                                  variant="outline"
+                                  className="bg-slate-50"
+                                >
+                                  {code}
+                                </Badge>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                    {compound.fda.other.storage && (
+                      <div className="mt-6">
+                        <h4 className="text-sm font-medium text-slate-500 mb-1">
+                          Penyimpanan & Penanganan
+                        </h4>
+                        <p className="whitespace-pre-line text-sm">
+                          {compound.fda.other.storage}
+                        </p>
+                      </div>
+                    )}
+
+                    {compound.fda.other.questions && (
+                      <div className="mt-6">
+                        <h4 className="text-sm font-medium text-slate-500 mb-1">
+                          Kontak
+                        </h4>
+                        <p className="text-sm">
+                          {compound.fda.other.questions}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          )}
+
           {tableOfContents.map((section, index) => (
             <section
               key={index}
@@ -894,8 +1850,41 @@ export default function DrugDetailPage() {
               <MdLibraryBooks className="text-slate-400" />
               <h3 className="font-medium">Sumber Data</h3>
             </div>
+
+            {compound.fda && (
+              <div className="mb-4 pb-4 border-b border-slate-200">
+                <h4 className="font-medium text-blue-800 mb-2">
+                  U.S. Food and Drug Administration (FDA)
+                </h4>
+                <p className="text-xs text-slate-600 mb-1">
+                  Data Label dengan ketentuan berikut:
+                </p>
+                <ul className="list-disc pl-5 text-xs space-y-1">
+                  <li>
+                    <strong>Disclaimer:</strong> {compound.fda.meta.disclaimer}
+                  </li>
+                  <li>
+                    <strong>Diperbarui:</strong> {compound.fda.meta.lastUpdated}
+                  </li>
+                  <li>
+                    <a
+                      href={compound.fda.meta.terms}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Ketentuan Penggunaan
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            )}
+
+            <h4 className="font-medium text-indigo-800 mb-2">
+              PubChem - National Library of Medicine
+            </h4>
             <ul className="space-y-1 pl-6 list-disc">
-              {compound.sources.slice(0, 5).map((source, index) => (
+              {compound.formatted.sources.slice(0, 5).map((source, index) => (
                 <li key={index}>
                   {source.url ? (
                     <a
@@ -913,34 +1902,37 @@ export default function DrugDetailPage() {
                   )}
                 </li>
               ))}
-              {compound.sources.length > 5 && (
+              {compound.formatted.sources.length > 5 && (
                 <Accordion type="single" collapsible>
                   <AccordionItem value="more-sources">
                     <AccordionTrigger className="text-xs py-1 hover:no-underline">
-                      Lihat {compound.sources.length - 5} sumber lainnya
+                      Lihat {compound.formatted.sources.length - 5} sumber
+                      lainnya
                     </AccordionTrigger>
                     <AccordionContent>
                       <ul className="space-y-1 pl-2 list-disc">
-                        {compound.sources.slice(5).map((source, index) => (
-                          <li key={index}>
-                            {source.url ? (
-                              <a
-                                href={source.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-indigo-600 hover:underline"
-                              >
-                                {source.name}{" "}
-                                {source.id ? `(${source.id})` : ""}
-                              </a>
-                            ) : (
-                              <span>
-                                {source.name}{" "}
-                                {source.id ? `(${source.id})` : ""}
-                              </span>
-                            )}
-                          </li>
-                        ))}
+                        {compound.formatted.sources
+                          .slice(5)
+                          .map((source, index) => (
+                            <li key={index}>
+                              {source.url ? (
+                                <a
+                                  href={source.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-indigo-600 hover:underline"
+                                >
+                                  {source.name}{" "}
+                                  {source.id ? `(${source.id})` : ""}
+                                </a>
+                              ) : (
+                                <span>
+                                  {source.name}{" "}
+                                  {source.id ? `(${source.id})` : ""}
+                                </span>
+                              )}
+                            </li>
+                          ))}
                       </ul>
                     </AccordionContent>
                   </AccordionItem>
@@ -949,11 +1941,16 @@ export default function DrugDetailPage() {
             </ul>
             <p className="mt-4 text-xs">
               <em>
-                Data dari PubChem - National Library of Medicine. Informasi
-                disediakan untuk tujuan edukasi dan tidak menggantikan saran
-                profesional kesehatan.
+                Informasi disediakan untuk tujuan edukasi dan tidak menggantikan
+                saran profesional kesehatan.
               </em>
             </p>
+            <div className="mt-2 text-right">
+              <span className="text-xs text-slate-400">
+                Data diambil pada:{" "}
+                {new Date(compound.fetchedAt).toLocaleString()}
+              </span>
+            </div>
           </div>
         </TabsContent>
       </Tabs>
@@ -991,22 +1988,32 @@ function ChemicalPropertiesTable({ compound }) {
     { label: "InChI Key", value: compound.essential.inchiKey, isCode: true },
   ];
 
-  // Add additional properties from compound sections if available
-  const chemPhysProps = compound.sections["Chemical and Physical Properties"];
+  const chemPhysProps =
+    compound.formatted.sections["Chemical and Physical Properties"];
   if (chemPhysProps && chemPhysProps.subsections) {
     const computedProps = chemPhysProps.subsections.find(
       (s) =>
         s.name === "Computed Properties" ||
         s.name === "Chemical and Physical Properties"
     );
+
     if (computedProps && computedProps.data) {
-      Object.entries(computedProps.data).forEach(([key, value]) => {
+      Object.entries(computedProps.data).forEach(([key, valueObj]) => {
+        const value = valueObj.value;
         if (
           !tableData.some(
             (item) => item.label.toLowerCase() === key.toLowerCase()
           )
         ) {
-          tableData.push({ label: key, value });
+          if (typeof value === "object" && value !== null) {
+            if (value.formatted) {
+              tableData.push({ label: key, value: value.formatted });
+            } else if (value.text) {
+              tableData.push({ label: key, value: value.text });
+            }
+          } else {
+            tableData.push({ label: key, value });
+          }
         }
       });
     }
@@ -1026,9 +2033,11 @@ function ChemicalPropertiesTable({ compound }) {
             <TableCell className="font-medium">{row.label}</TableCell>
             <TableCell>
               {row.isCode ? (
-                <span className="font-mono text-xs bg-slate-50 p-1 rounded border border-slate-200 overflow-auto max-w-xs block">
-                  {row.value}
-                </span>
+                <div className="max-w-[250px] sm:max-w-xs lg:max-w-md overflow-auto">
+                  <span className="font-mono text-xs bg-slate-50 p-1 rounded border border-slate-200">
+                    {row.value}
+                  </span>
+                </div>
               ) : (
                 row.value
               )}
@@ -1048,8 +2057,7 @@ function SectionCard({
   compound,
   sectionKey,
 }) {
-  // Directly render data if there are no subsections but there's data in the section
-  const sectionData = compound.sections[sectionKey]?.data;
+  const sectionData = compound.formatted.sections[sectionKey]?.data;
   const hasDirectData = sectionData && Object.keys(sectionData).length > 0;
 
   return (
@@ -1063,27 +2071,30 @@ function SectionCard({
       <CardContent>
         {hasDirectData && (
           <div className="mb-4">
-            {Object.entries(sectionData).map(([key, value], idx) => (
-              <div key={idx} className="mb-3">
-                <h4 className="font-medium text-slate-700">{key}</h4>
-                {Array.isArray(value) ? (
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {value.slice(0, 10).map((item, i) => (
-                      <Badge key={i} variant="secondary" className="text-xs">
-                        {item}
-                      </Badge>
-                    ))}
-                    {value.length > 10 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{value.length - 10} lainnya
-                      </Badge>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-slate-600">{value}</p>
-                )}
-              </div>
-            ))}
+            {Object.entries(sectionData).map(([key, valueObj], idx) => {
+              const value = valueObj.value;
+              return (
+                <div key={idx} className="mb-3">
+                  <h4 className="font-medium text-slate-700">{key}</h4>
+                  {Array.isArray(value) ? (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {value.slice(0, 10).map((item, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs">
+                          {item}
+                        </Badge>
+                      ))}
+                      {value.length > 10 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{value.length - 10} lainnya
+                        </Badge>
+                      )}
+                    </div>
+                  ) : (
+                    <RenderValue value={value} />
+                  )}
+                </div>
+              );
+            })}
             {children && <Separator className="my-4" />}
           </div>
         )}
@@ -1093,7 +2104,36 @@ function SectionCard({
   );
 }
 
-// Helper functions
+function RenderValue({ value }) {
+  if (value === null || value === undefined) {
+    return <p className="text-slate-500 italic">Tidak tersedia</p>;
+  }
+
+  if (typeof value === "object") {
+    if (value.text) {
+      return <p className="text-slate-600">{value.text}</p>;
+    }
+    if (value.formatted) {
+      return <p className="text-slate-600">{value.formatted}</p>;
+    }
+    if (value.type === "url" && value.url) {
+      return (
+        <a
+          href={value.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-indigo-600 hover:underline flex items-center"
+        >
+          {value.url} <MdOpenInNew className="ml-1 h-3 w-3" />
+        </a>
+      );
+    }
+    return <p className="text-slate-600">{JSON.stringify(value)}</p>;
+  }
+
+  return <p className="text-slate-600">{value}</p>;
+}
+
 function getSectionIcon(title) {
   const title_lower = title.toLowerCase();
 
@@ -1108,7 +2148,7 @@ function getSectionIcon(title) {
   if (title_lower.includes("food"))
     return <MdOutlineFoodBank className="text-amber-600" />;
   if (title_lower.includes("agriculture") || title_lower.includes("agro"))
-    return <MdOutlineAgricultural className="text-green-700" />;
+    return <MdOutlineEco className="text-green-700" />;
   if (title_lower.includes("safety") || title_lower.includes("hazard"))
     return <MdOutlineWarningAmber className="text-red-600" />;
   if (title_lower.includes("toxic"))
@@ -1123,8 +2163,25 @@ function getSectionIcon(title) {
   return <MdOutlineInfo className="text-slate-600" />;
 }
 
+function getTabName(tab) {
+  switch (tab) {
+    case "overview":
+      return "Ringkasan";
+    case "chemistry":
+      return "Kimia";
+    case "pharmacology":
+      return "Farmakologi & Klinis";
+    case "safety":
+      return "Keamanan";
+    case "full":
+      return "Konten Lengkap";
+    default:
+      return "Ringkasan";
+  }
+}
+
 function renderSectionIfExists(compound, sectionName, subsectionName) {
-  const section = compound.sections[sectionName];
+  const section = compound.formatted.sections[sectionName];
   if (!section) return null;
 
   const subsection = section.subsections.find((s) => s.name === subsectionName);
@@ -1136,29 +2193,32 @@ function renderSectionIfExists(compound, sectionName, subsectionName) {
         <CardTitle>{subsectionName}</CardTitle>
       </CardHeader>
       <CardContent>
-        {Object.entries(subsection.data).map(([key, value], idx) => (
-          <div key={idx} className="mb-4 last:mb-0">
-            <h4 className="font-medium text-slate-700 mb-1">{key}</h4>
-            {Array.isArray(value) ? (
-              <div className="flex flex-wrap gap-2">
-                {value.map((item, i) => (
-                  <Badge key={i} variant="secondary">
-                    {item}
-                  </Badge>
-                ))}
-              </div>
-            ) : (
-              <p className="text-slate-600 whitespace-pre-line">{value}</p>
-            )}
-          </div>
-        ))}
+        {Object.entries(subsection.data).map(([key, valueObj], idx) => {
+          const value = valueObj.value;
+          return (
+            <div key={idx} className="mb-4 last:mb-0">
+              <h4 className="font-medium text-slate-700 mb-1">{key}</h4>
+              {Array.isArray(value) ? (
+                <div className="flex flex-wrap gap-2">
+                  {value.map((item, i) => (
+                    <Badge key={i} variant="secondary">
+                      {item}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <RenderValue value={value} />
+              )}
+            </div>
+          );
+        })}
       </CardContent>
     </Card>
   );
 }
 
 function renderSubsectionContent(compound, sectionName, subsectionName) {
-  const section = compound.sections[sectionName];
+  const section = compound.formatted.sections[sectionName];
   if (!section) return <p>Informasi tidak tersedia</p>;
 
   const subsection = section.subsections.find((s) => s.name === subsectionName);
@@ -1172,24 +2232,26 @@ function renderSubsectionContent(compound, sectionName, subsectionName) {
 
   return (
     <div className="space-y-4">
-      {Object.entries(subsection.data).map(([key, value], idx) => (
-        <div key={idx}>
-          <h4 className="font-medium text-slate-700 mb-1">{key}</h4>
-          {Array.isArray(value) ? (
-            <div className="flex flex-wrap gap-2">
-              {value.map((item, i) => (
-                <Badge key={i} variant="secondary" className="text-xs">
-                  {item}
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            <p className="text-slate-600 whitespace-pre-line">{value}</p>
-          )}
-        </div>
-      ))}
+      {Object.entries(subsection.data).map(([key, valueObj], idx) => {
+        const value = valueObj.value;
+        return (
+          <div key={idx}>
+            <h4 className="font-medium text-slate-700 mb-1">{key}</h4>
+            {Array.isArray(value) ? (
+              <div className="flex flex-wrap gap-2">
+                {value.map((item, i) => (
+                  <Badge key={i} variant="secondary" className="text-xs">
+                    {item}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <RenderValue value={value} />
+            )}
+          </div>
+        );
+      })}
 
-      {/* Display sub-subsections if they exist */}
       {subsection.subsections && subsection.subsections.length > 0 && (
         <div className="mt-6 border-t pt-4">
           <h4 className="font-medium text-slate-700 mb-3">Subtopik</h4>
@@ -1202,28 +2264,31 @@ function renderSubsectionContent(compound, sectionName, subsectionName) {
                 <AccordionContent>
                   {Object.entries(subsubsection.data).length > 0 ? (
                     Object.entries(subsubsection.data).map(
-                      ([key, value], i) => (
-                        <div key={i} className="mb-3">
-                          <h5 className="font-medium text-slate-700 text-sm">
-                            {key}
-                          </h5>
-                          {Array.isArray(value) ? (
-                            <div className="flex flex-wrap gap-2 mt-1">
-                              {value.map((item, j) => (
-                                <Badge
-                                  key={j}
-                                  variant="outline"
-                                  className="text-xs"
-                                >
-                                  {item}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-slate-600 text-sm">{value}</p>
-                          )}
-                        </div>
-                      )
+                      ([key, valueObj], i) => {
+                        const value = valueObj.value;
+                        return (
+                          <div key={i} className="mb-3">
+                            <h5 className="font-medium text-slate-700 text-sm">
+                              {key}
+                            </h5>
+                            {Array.isArray(value) ? (
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                {value.map((item, j) => (
+                                  <Badge
+                                    key={j}
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    {item}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <RenderValue value={value} />
+                            )}
+                          </div>
+                        );
+                      }
                     )
                   ) : (
                     <p className="text-slate-500 italic text-sm">
