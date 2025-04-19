@@ -661,37 +661,94 @@ export default function DrugDetailPage() {
                       </div>
                     )}
 
-                  {/* Sinonim dari CSV/dataset */}
+                  {/* Sinonim dari CSV/dataset - Pada TabsContent value="overview" */}
                   <div>
                     <h3 className="text-sm font-medium text-slate-500">
                       Sinonim
                     </h3>
-                    {compound.essential.synonyms &&
-                    compound.essential.synonyms.length > 0 &&
-                    compound.essential.synonyms[0] !== "N/A" ? (
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {compound.essential.synonyms
-                          .slice(0, 5)
-                          .map((synonym, idx) => (
-                            <Badge
-                              key={idx}
-                              variant="secondary"
-                              className="text-xs"
-                            >
-                              {synonym}
-                            </Badge>
-                          ))}
-                        {compound.essential.synonyms.length > 5 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{compound.essential.synonyms.length - 5} lainnya
-                          </Badge>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-slate-400 text-sm italic">
-                        Tidak tersedia
-                      </p>
-                    )}
+                    {(() => {
+                      // Cari sinonim dari path yang benar
+                      const synonymsSection =
+                        compound.raw?.Record?.Section?.find(
+                          (section) => section.TOCHeading === "Synonyms"
+                        );
+
+                      // MeSH Entry Terms
+                      const meshSection = synonymsSection?.Section?.find(
+                        (section) => section.TOCHeading === "MeSH Entry Terms"
+                      );
+
+                      // Depositor-Supplied Synonyms
+                      const depositorSection = synonymsSection?.Section?.find(
+                        (section) =>
+                          section.TOCHeading === "Depositor-Supplied Synonyms"
+                      );
+
+                      let synonyms = [];
+
+                      // Ambil dari MeSH jika ada
+                      if (
+                        meshSection?.Information?.[0]?.Value?.StringWithMarkup
+                      ) {
+                        synonyms =
+                          meshSection.Information[0].Value.StringWithMarkup.map(
+                            (item) => item.String
+                          ).filter(Boolean);
+                      }
+
+                      // Tambahkan dari Depositor jika masih belum cukup
+                      if (
+                        synonyms.length < 5 &&
+                        depositorSection?.Information?.[0]?.Value
+                          ?.StringWithMarkup
+                      ) {
+                        const depositorSynonyms =
+                          depositorSection.Information[0].Value.StringWithMarkup.map(
+                            (item) => item.String
+                          ).filter(Boolean);
+
+                        synonyms = [
+                          ...new Set([...synonyms, ...depositorSynonyms]),
+                        ].slice(0, 10);
+                      }
+
+                      // Fallback ke data yang sudah ada jika tidak ditemukan
+                      if (
+                        synonyms.length === 0 &&
+                        compound.essential.synonyms &&
+                        compound.essential.synonyms.length > 0 &&
+                        compound.essential.synonyms[0] !== "N/A"
+                      ) {
+                        synonyms = compound.essential.synonyms;
+                      }
+
+                      if (synonyms.length > 0) {
+                        return (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {synonyms.slice(0, 5).map((synonym, idx) => (
+                              <Badge
+                                key={idx}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {synonym}
+                              </Badge>
+                            ))}
+                            {synonyms.length > 5 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{synonyms.length - 5} lainnya
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <p className="text-slate-400 text-sm italic">
+                            Tidak tersedia
+                          </p>
+                        );
+                      }
+                    })()}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
@@ -2553,41 +2610,112 @@ function ChemicalPropertiesTable({ compound }) {
   // Initialize with core properties, filtering out N/A values
   const tableData = [];
 
-  // Add formula if available
+  // Get Formula Molekul dari path yang benar
+  // raw.Record.Section[*].TOCHeading == "Molecular Formula"
+  const molecularFormulaSection = compound.raw?.Record?.Section?.find(
+    (section) => section.TOCHeading === "Molecular Formula"
+  );
+
   if (
+    molecularFormulaSection?.Information?.[0]?.Value?.StringWithMarkup?.[0]
+      ?.String
+  ) {
+    tableData.push({
+      label: "Formula Molekul",
+      value: formatFormula(
+        molecularFormulaSection.Information[0].Value.StringWithMarkup[0].String
+      ),
+    });
+  } else if (
     compound.essential.molecularFormula &&
     compound.essential.molecularFormula !== "N/A"
   ) {
+    // Fallback ke data yang sudah ada jika tidak ditemukan
     tableData.push({
       label: "Formula Molekul",
       value: formatFormula(compound.essential.molecularFormula),
     });
   }
 
-  // Add molecular weight if available
+  // Get Berat Molekul dari path yang benar
+  // Mencari Chemical and Physical Properties -> Computed Properties -> Molecular Weight
+  const chemicalSection = compound.raw?.Record?.Section?.find(
+    (section) => section.TOCHeading === "Chemical and Physical Properties"
+  );
+
+  const computedPropertiesSection = chemicalSection?.Section?.find(
+    (section) => section.TOCHeading === "Computed Properties"
+  );
+
+  const molecularWeightSection = computedPropertiesSection?.Section?.find(
+    (section) => section.TOCHeading === "Molecular Weight"
+  );
+
   if (
+    molecularWeightSection?.Information?.[0]?.Value?.StringWithMarkup?.[0]
+      ?.String
+  ) {
+    const weight =
+      molecularWeightSection.Information[0].Value.StringWithMarkup[0].String;
+    const unit = molecularWeightSection.Information[0].Value.Unit || "g/mol";
+    tableData.push({
+      label: "Berat Molekul",
+      value: `${weight} ${unit}`,
+    });
+  } else if (
     compound.essential.molecularWeight &&
     compound.essential.molecularWeight !== "N/A"
   ) {
+    // Fallback ke data yang sudah ada jika tidak ditemukan
     tableData.push({
       label: "Berat Molekul",
       value: compound.essential.molecularWeight,
     });
   }
 
-  // Add IUPAC Name if available
-  if (compound.essential.iupacName && compound.essential.iupacName !== "N/A") {
+  // Get IUPAC Name dari path yang benar
+  // raw.Record.Section[*].TOCHeading == "Computed Descriptors" -> IUPAC Name
+  const descriptorsSection = compound.raw?.Record?.Section?.find(
+    (section) => section.TOCHeading === "Computed Descriptors"
+  );
+
+  const iupacSection = descriptorsSection?.Section?.find(
+    (section) => section.TOCHeading === "IUPAC Name"
+  );
+
+  if (iupacSection?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String) {
+    tableData.push({
+      label: "Nama IUPAC",
+      value: iupacSection.Information[0].Value.StringWithMarkup[0].String,
+    });
+  } else if (
+    compound.essential.iupacName &&
+    compound.essential.iupacName !== "N/A"
+  ) {
+    // Fallback ke data yang sudah ada jika tidak ditemukan
     tableData.push({
       label: "Nama IUPAC",
       value: compound.essential.iupacName,
     });
   }
 
-  // Add SMILES if available
-  if (
+  // Get SMILES dari path yang benar
+  // raw.Record.Section[*].TOCHeading == "Computed Descriptors" -> SMILES
+  const smilesSection = descriptorsSection?.Section?.find(
+    (section) => section.TOCHeading === "SMILES"
+  );
+
+  if (smilesSection?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String) {
+    tableData.push({
+      label: "SMILES",
+      value: smilesSection.Information[0].Value.StringWithMarkup[0].String,
+      isCode: true,
+    });
+  } else if (
     compound.essential.canonicalSmiles &&
     compound.essential.canonicalSmiles !== "N/A"
   ) {
+    // Fallback ke data yang sudah ada jika tidak ditemukan
     tableData.push({
       label: "SMILES",
       value: compound.essential.canonicalSmiles,
@@ -2595,11 +2723,22 @@ function ChemicalPropertiesTable({ compound }) {
     });
   }
 
-  // Add InChI if available from CSV data
-  if (
+  // Get InChI dari path yang benar
+  const inchiSection = descriptorsSection?.Section?.find(
+    (section) => section.TOCHeading === "InChI"
+  );
+
+  if (inchiSection?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String) {
+    tableData.push({
+      label: "InChI",
+      value: inchiSection.Information[0].Value.StringWithMarkup[0].String,
+      isCode: true,
+    });
+  } else if (
     compound.raw?.Record?.Section?.[2]?.Section?.[1]?.Section?.[1]
       ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String
   ) {
+    // Fallback ke path yang sudah ada sebelumnya
     tableData.push({
       label: "InChI",
       value:
@@ -2609,13 +2748,51 @@ function ChemicalPropertiesTable({ compound }) {
     });
   }
 
-  // Add InChI Key if available
-  if (compound.essential.inchiKey && compound.essential.inchiKey !== "N/A") {
+  // Get InChIKey dari path yang benar
+  const inchiKeySection = descriptorsSection?.Section?.find(
+    (section) => section.TOCHeading === "InChIKey"
+  );
+
+  if (inchiKeySection?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String) {
+    tableData.push({
+      label: "InChI Key",
+      value: inchiKeySection.Information[0].Value.StringWithMarkup[0].String,
+      isCode: true,
+    });
+  } else if (
+    compound.essential.inchiKey &&
+    compound.essential.inchiKey !== "N/A"
+  ) {
+    // Fallback ke data yang sudah ada jika tidak ditemukan
     tableData.push({
       label: "InChI Key",
       value: compound.essential.inchiKey,
       isCode: true,
     });
+  }
+
+  // Get sinonim dari path yang benar
+  // raw.Record.Section[*].TOCHeading == "Synonyms"
+  const synonymsSection = compound.raw?.Record?.Section?.find(
+    (section) => section.TOCHeading === "Synonyms"
+  );
+
+  // MeSH Entry Terms
+  const meshSection = synonymsSection?.Section?.find(
+    (section) => section.TOCHeading === "MeSH Entry Terms"
+  );
+
+  if (meshSection?.Information?.[0]?.Value?.StringWithMarkup) {
+    const meshTerms = meshSection.Information[0].Value.StringWithMarkup.map(
+      (item) => item.String
+    ).filter(Boolean);
+
+    if (meshTerms.length > 0) {
+      tableData.push({
+        label: "MeSH Synonyms",
+        value: meshTerms.join(", "),
+      });
+    }
   }
 
   // Add XLogP3 from CSV if available
