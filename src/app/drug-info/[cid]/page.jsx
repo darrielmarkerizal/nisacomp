@@ -508,53 +508,84 @@ export default function DrugDetailPage() {
                 >
                   <DialogTrigger asChild>
                     <div className="p-2 bg-white rounded-lg shadow-sm border cursor-pointer group relative">
-                      <Image
-                        src={compound.essential.structureUrl}
-                        alt={`Struktur kimia ${compound.name}`}
-                        width={200}
-                        height={200}
-                        className="mx-auto"
-                      />
-                      <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                        <MdZoomIn className="h-8 w-8 text-indigo-600" />
-                      </div>
+                      {compound.essential.structureUrl ? (
+                        <Image
+                          src={compound.essential.structureUrl}
+                          alt={`Struktur kimia ${compound.name}`}
+                          width={200}
+                          height={200}
+                          className="mx-auto"
+                        />
+                      ) : (
+                        <div className="w-[200px] h-[200px] flex items-center justify-center bg-slate-50 text-slate-400">
+                          Struktur tidak tersedia
+                        </div>
+                      )}
+                      {compound.essential.structureUrl && (
+                        <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                          <MdZoomIn className="h-8 w-8 text-indigo-600" />
+                        </div>
+                      )}
                     </div>
                   </DialogTrigger>
-                  <DialogContent className="max-w-3xl">
-                    <div className="flex justify-center p-4">
-                      <Image
-                        src={compound.essential.structureUrl}
-                        alt={`Struktur kimia ${compound.name}`}
-                        width={600}
-                        height={600}
-                        className="max-h-[80vh] w-auto object-contain"
-                      />
-                    </div>
-                  </DialogContent>
+                  {compound.essential.structureUrl && (
+                    <DialogContent className="max-w-3xl">
+                      <div className="flex justify-center p-4">
+                        <Image
+                          src={compound.essential.structureUrl}
+                          alt={`Struktur kimia ${compound.name}`}
+                          width={600}
+                          height={600}
+                          className="max-h-[80vh] w-auto object-contain"
+                        />
+                      </div>
+                    </DialogContent>
+                  )}
                 </Dialog>
 
                 <div className="mt-4 w-full text-center">
-                  <p className="font-medium">
-                    {compound.essential.molecularFormula
-                      .split("")
-                      .map((char, index) => {
-                        return /\d/.test(char) ? (
-                          <sub key={index}>{char}</sub>
-                        ) : (
-                          char
-                        );
-                      })}
-                  </p>
+                  {compound.essential.molecularFormula &&
+                  compound.essential.molecularFormula !== "N/A" ? (
+                    <p className="font-medium">
+                      {compound.essential.molecularFormula
+                        .split("")
+                        .map((char, index) => {
+                          return /\d/.test(char) ? (
+                            <sub key={index}>{char}</sub>
+                          ) : (
+                            char
+                          );
+                        })}
+                    </p>
+                  ) : (
+                    <p className="font-medium text-slate-400">
+                      Formula tidak tersedia
+                    </p>
+                  )}
                   <p className="text-sm text-slate-500">Formula Molekul</p>
                 </div>
                 <div className="mt-2">
-                  <p className="text-sm text-slate-600">
-                    Berat Molekul:{" "}
-                    <span className="font-medium">
-                      {compound.essential.molecularWeight}
-                    </span>
-                  </p>
+                  {compound.essential.molecularWeight &&
+                  compound.essential.molecularWeight !== "N/A" ? (
+                    <p className="text-sm text-slate-600">
+                      Berat Molekul:{" "}
+                      <span className="font-medium">
+                        {compound.essential.molecularWeight}
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="text-sm text-slate-400">
+                      Berat Molekul: Tidak tersedia
+                    </p>
+                  )}
                 </div>
+
+                {/* Tampilkan informasi Record Number */}
+                {compound.raw?.Record?.RecordNumber && (
+                  <div className="mt-2 text-sm text-slate-500">
+                    <p>CID: {compound.raw.Record.RecordNumber}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -570,44 +601,74 @@ export default function DrugDetailPage() {
                     <h3 className="text-sm font-medium text-slate-500">
                       Nama IUPAC
                     </h3>
-                    <p className="font-medium break-words">
-                      {compound.essential.iupacName}
-                    </p>
+                    {compound.essential.iupacName &&
+                    compound.essential.iupacName !== "N/A" ? (
+                      <p className="font-medium break-words">
+                        {compound.essential.iupacName}
+                      </p>
+                    ) : (
+                      <p className="font-medium text-slate-400">
+                        Tidak tersedia
+                      </p>
+                    )}
                   </div>
 
-                  {compound.fda && compound.fda.identification.genericName && (
-                    <div className="flex flex-col md:flex-row gap-4">
-                      {compound.fda.identification.genericName && (
-                        <div className="flex-1">
-                          <h3 className="text-sm font-medium text-slate-500">
-                            Nama Generik
-                          </h3>
-                          <p className="font-medium">
-                            {compound.fda.identification.genericName}
-                          </p>
-                        </div>
-                      )}
-                      {compound.fda.identification.brandName && (
-                        <div className="flex-1">
-                          <h3 className="text-sm font-medium text-slate-500">
-                            Nama Dagang
-                          </h3>
-                          <Badge
-                            variant="outline"
-                            className="bg-blue-50 text-blue-800 border-blue-200"
-                          >
-                            {compound.fda.identification.brandName}
-                          </Badge>
-                        </div>
-                      )}
+                  {/* Menampilkan Record Description dari CSV */}
+                  {compound.raw?.Record?.Section?.[2]?.Section?.[0]
+                    ?.Information?.[0]?.Value?.StringWithMarkup?.[0]
+                    ?.String && (
+                    <div>
+                      <h3 className="text-sm font-medium text-slate-500">
+                        Deskripsi
+                      </h3>
+                      <p className="text-slate-700">
+                        {
+                          compound.raw.Record.Section[2].Section[0]
+                            .Information[0].Value.StringWithMarkup[0].String
+                        }
+                      </p>
                     </div>
                   )}
 
-                  {compound.essential.synonyms[0] !== "N/A" && (
-                    <div>
-                      <h3 className="text-sm font-medium text-slate-500">
-                        Sinonim
-                      </h3>
+                  {/* Tampilkan informasi klasifikasi FDA jika tersedia */}
+                  {compound.fda &&
+                    (compound.fda.identification.genericName ||
+                      compound.fda.identification.brandName) && (
+                      <div className="flex flex-col md:flex-row gap-4">
+                        {compound.fda.identification.genericName && (
+                          <div className="flex-1">
+                            <h3 className="text-sm font-medium text-slate-500">
+                              Nama Generik
+                            </h3>
+                            <p className="font-medium">
+                              {compound.fda.identification.genericName}
+                            </p>
+                          </div>
+                        )}
+                        {compound.fda.identification.brandName && (
+                          <div className="flex-1">
+                            <h3 className="text-sm font-medium text-slate-500">
+                              Nama Dagang
+                            </h3>
+                            <Badge
+                              variant="outline"
+                              className="bg-blue-50 text-blue-800 border-blue-200"
+                            >
+                              {compound.fda.identification.brandName}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  {/* Sinonim dari CSV/dataset */}
+                  <div>
+                    <h3 className="text-sm font-medium text-slate-500">
+                      Sinonim
+                    </h3>
+                    {compound.essential.synonyms &&
+                    compound.essential.synonyms.length > 0 &&
+                    compound.essential.synonyms[0] !== "N/A" ? (
                       <div className="flex flex-wrap gap-2 mt-1">
                         {compound.essential.synonyms
                           .slice(0, 5)
@@ -626,74 +687,243 @@ export default function DrugDetailPage() {
                           </Badge>
                         )}
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <p className="text-slate-400 text-sm italic">
+                        Tidak tersedia
+                      </p>
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                     <div className="space-y-1">
                       <h3 className="text-sm font-medium text-slate-500">
                         InChIKey
                       </h3>
-                      <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto">
-                        {compound.essential.inchiKey}
-                      </p>
+                      {compound.essential.inchiKey &&
+                      compound.essential.inchiKey !== "N/A" ? (
+                        <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto">
+                          {compound.essential.inchiKey}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-400 p-2">
+                          Tidak tersedia
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <h3 className="text-sm font-medium text-slate-500">
                         SMILES
                       </h3>
-                      <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto max-h-[60px]">
-                        {compound.essential.canonicalSmiles}
-                      </p>
+                      {compound.essential.canonicalSmiles &&
+                      compound.essential.canonicalSmiles !== "N/A" ? (
+                        <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto max-h-[60px]">
+                          {compound.essential.canonicalSmiles}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-400 p-2">
+                          Tidak tersedia
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  {compound.fda && compound.fda.pharmacology && (
+                  {/* Identifiers lainnya dari CSV (CAS, EC Number, dll) */}
+                  {compound.raw?.Record?.Section?.[2]?.Section?.[3] && (
                     <div className="pt-2">
-                      <h3 className="text-sm font-medium text-slate-500">
-                        Klasifikasi Farmakologi (FDA)
+                      <h3 className="text-sm font-medium text-slate-500 mb-2">
+                        Identifikasi Lainnya
                       </h3>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {compound.fda.pharmacology.mechanismOfAction && (
-                          <Badge
-                            variant="outline"
-                            className="bg-green-50 text-green-800 border-green-200"
-                          >
-                            {compound.fda.pharmacology.mechanismOfAction}
-                          </Badge>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        {/* CAS Number */}
+                        {compound.raw?.Record?.Section?.[2]?.Section?.[3]
+                          ?.Section?.[0]?.Information?.[0]?.Value
+                          ?.StringWithMarkup?.[0]?.String && (
+                          <div>
+                            <span className="font-medium">CAS:</span>{" "}
+                            {
+                              compound.raw.Record.Section[2].Section[3]
+                                .Section[0].Information[0].Value
+                                .StringWithMarkup[0].String
+                            }
+                          </div>
                         )}
-                        {compound.fda.pharmacology.physiologicEffect && (
-                          <Badge
-                            variant="outline"
-                            className="bg-blue-50 text-blue-800 border-blue-200"
-                          >
-                            {compound.fda.pharmacology.physiologicEffect}
-                          </Badge>
+
+                        {/* EC Number */}
+                        {compound.raw?.Record?.Section?.[2]?.Section?.[3]
+                          ?.Section?.[3]?.Information?.[0]?.Value
+                          ?.StringWithMarkup?.[0]?.String && (
+                          <div>
+                            <span className="font-medium">EC Number:</span>{" "}
+                            {
+                              compound.raw.Record.Section[2].Section[3]
+                                .Section[3].Information[0].Value
+                                .StringWithMarkup[0].String
+                            }
+                          </div>
                         )}
-                        {compound.fda.pharmacology.chemicalStructure && (
-                          <Badge
-                            variant="outline"
-                            className="bg-purple-50 text-purple-800 border-purple-200"
-                          >
-                            {compound.fda.pharmacology.chemicalStructure}
-                          </Badge>
+
+                        {/* UNII */}
+                        {compound.raw?.Record?.Section?.[2]?.Section?.[3]
+                          ?.Section?.[4]?.Information?.[0]?.Value
+                          ?.StringWithMarkup?.[0]?.String && (
+                          <div>
+                            <span className="font-medium">UNII:</span>{" "}
+                            {
+                              compound.raw.Record.Section[2].Section[3]
+                                .Section[4].Information[0].Value
+                                .StringWithMarkup[0].String
+                            }
+                          </div>
+                        )}
+
+                        {/* ChEBI ID */}
+                        {compound.raw?.Record?.Section?.[2]?.Section?.[3]
+                          ?.Section?.[5]?.Information?.[0]?.Value
+                          ?.StringWithMarkup?.[0]?.String && (
+                          <div>
+                            <span className="font-medium">ChEBI ID:</span>{" "}
+                            {
+                              compound.raw.Record.Section[2].Section[3]
+                                .Section[5].Information[0].Value
+                                .StringWithMarkup[0].String
+                            }
+                          </div>
+                        )}
+
+                        {/* DrugBank ID */}
+                        {compound.raw?.Record?.Section?.[2]?.Section?.[3]
+                          ?.Section?.[7]?.Information?.[0]?.Value
+                          ?.StringWithMarkup?.[0]?.String && (
+                          <div>
+                            <span className="font-medium">DrugBank ID:</span>{" "}
+                            {
+                              compound.raw.Record.Section[2].Section[3]
+                                .Section[7].Information[0].Value
+                                .StringWithMarkup[0].String
+                            }
+                          </div>
                         )}
                       </div>
                     </div>
                   )}
 
-                  {compound.essential.useClassification !== "N/A" && (
-                    <div className="pt-2">
-                      <h3 className="text-sm font-medium text-slate-500">
-                        Klasifikasi Penggunaan (PubChem)
-                      </h3>
-                      <p>{compound.essential.useClassification}</p>
-                    </div>
-                  )}
+                  {/* Menampilkan klasifikasi farmakologi dari FDA jika tersedia */}
+                  {compound.fda &&
+                    compound.fda.pharmacology &&
+                    (compound.fda.pharmacology.mechanismOfAction ||
+                      compound.fda.pharmacology.physiologicEffect ||
+                      compound.fda.pharmacology.chemicalStructure) && (
+                      <div className="pt-2">
+                        <h3 className="text-sm font-medium text-slate-500">
+                          Klasifikasi Farmakologi (FDA)
+                        </h3>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {compound.fda.pharmacology.mechanismOfAction && (
+                            <Badge
+                              variant="outline"
+                              className="bg-green-50 text-green-800 border-green-200"
+                            >
+                              {compound.fda.pharmacology.mechanismOfAction}
+                            </Badge>
+                          )}
+                          {compound.fda.pharmacology.physiologicEffect && (
+                            <Badge
+                              variant="outline"
+                              className="bg-blue-50 text-blue-800 border-blue-200"
+                            >
+                              {compound.fda.pharmacology.physiologicEffect}
+                            </Badge>
+                          )}
+                          {compound.fda.pharmacology.chemicalStructure && (
+                            <Badge
+                              variant="outline"
+                              className="bg-purple-50 text-purple-800 border-purple-200"
+                            >
+                              {compound.fda.pharmacology.chemicalStructure}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Tampilkan klasifikasi penggunaan dari PubChem jika tersedia */}
+                  {compound.essential.useClassification &&
+                    compound.essential.useClassification !== "N/A" && (
+                      <div className="pt-2">
+                        <h3 className="text-sm font-medium text-slate-500">
+                          Klasifikasi Penggunaan (PubChem)
+                        </h3>
+                        <p>{compound.essential.useClassification}</p>
+                      </div>
+                    )}
                 </div>
               </CardContent>
             </Card>
           </div>
+
+          {/* Farmakologi Info Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MdOutlineBiotech className="text-indigo-600" /> Deskripsi &
+                Farmakologi
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Tampilkan semua record descriptions dari CSV */}
+              {compound.raw?.Record?.Section?.[2]?.Section?.[0]?.Information?.map(
+                (info, index) =>
+                  info?.Value?.StringWithMarkup?.[0]?.String && (
+                    <div
+                      key={index}
+                      className="mb-4 pb-4 border-b border-slate-100 last:border-0"
+                    >
+                      <p className="text-slate-700 whitespace-pre-line">
+                        {info.Value.StringWithMarkup[0].String}
+                      </p>
+                      {info.ReferenceNumber && (
+                        <div className="text-right mt-2">
+                          <Badge variant="outline" className="text-xs">
+                            Sumber #{info.ReferenceNumber}
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  )
+              )}
+
+              {/* Tampilkan informasi FDA jika tersedia */}
+              {compound.fda && compound.fda.clinical.purpose && (
+                <div className="bg-blue-50 p-3 rounded-md border border-blue-200 mb-2">
+                  <div className="flex items-center mb-2">
+                    <Badge
+                      variant="outline"
+                      className="bg-white text-blue-800 border-blue-200"
+                    >
+                      Tujuan Terapeutik (FDA)
+                    </Badge>
+                  </div>
+                  <p className="font-medium text-slate-800">
+                    {compound.fda.clinical.purpose}
+                  </p>
+                </div>
+              )}
+
+              {/* Tampilkan farmakologi dari PubChem jika tersedia */}
+              {compound.essential.pharmacology !== "N/A" && (
+                <div>
+                  {compound.fda && compound.fda.clinical.purpose && (
+                    <Separator />
+                  )}
+                  <div className="mt-2">
+                    <p className="text-slate-700 whitespace-pre-line">
+                      {compound.essential.pharmacology}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
@@ -749,73 +979,360 @@ export default function DrugDetailPage() {
             </CardContent>
           </Card>
 
-          {(compound.essential.pharmacology !== "N/A" ||
-            (compound.fda && compound.fda.clinical.purpose)) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MdOutlineBiotech className="text-indigo-600" /> Farmakologi
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {compound.fda && compound.fda.clinical.purpose && (
-                  <div className="bg-blue-50 p-3 rounded-md border border-blue-200 mb-2">
-                    <div className="flex items-center mb-2">
-                      <Badge
-                        variant="outline"
-                        className="bg-white text-blue-800 border-blue-200"
-                      >
-                        Tujuan Terapeutik (FDA)
-                      </Badge>
-                    </div>
-                    <p className="font-medium text-slate-800">
-                      {compound.fda.clinical.purpose}
-                    </p>
+          {/* Sifat Kimia dan Fisika dari CSV */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MdOutlineScience className="text-purple-600" /> Sifat Fisik &
+                Kimia
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Tampilkan sifat eksperimental dari CSV */}
+                {compound.raw?.Record?.Section?.[3]?.Section?.[1] && (
+                  <div>
+                    <h3 className="font-medium text-slate-700 mb-2">
+                      Properti Eksperimental
+                    </h3>
+                    <Table>
+                      <TableBody>
+                        {/* Physical Description */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                          ?.Section?.[0]?.Information?.[0]?.Value
+                          ?.StringWithMarkup?.[0]?.String && (
+                          <TableRow>
+                            <TableCell className="font-medium">
+                              Deskripsi Fisik
+                            </TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[1]
+                                  .Section[0].Information[0].Value
+                                  .StringWithMarkup[0].String
+                              }
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Color/Form */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                          ?.Section?.[1]?.Information?.[0]?.Value
+                          ?.StringWithMarkup?.[0]?.String && (
+                          <TableRow>
+                            <TableCell className="font-medium">
+                              Bentuk/Warna
+                            </TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[1]
+                                  .Section[1].Information[0].Value
+                                  .StringWithMarkup[0].String
+                              }
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Odor */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                          ?.Section?.[2]?.Information?.[0]?.Value
+                          ?.StringWithMarkup?.[0]?.String && (
+                          <TableRow>
+                            <TableCell className="font-medium">Bau</TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[1]
+                                  .Section[2].Information[0].Value
+                                  .StringWithMarkup[0].String
+                              }
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Taste */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                          ?.Section?.[3]?.Information?.[0]?.Value
+                          ?.StringWithMarkup?.[0]?.String && (
+                          <TableRow>
+                            <TableCell className="font-medium">Rasa</TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[1]
+                                  .Section[3].Information[0].Value
+                                  .StringWithMarkup[0].String
+                              }
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Melting Point */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                          ?.Section?.[5]?.Information?.[0]?.Value
+                          ?.Number?.[0] && (
+                          <TableRow>
+                            <TableCell className="font-medium">
+                              Titik Leleh
+                            </TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[1]
+                                  .Section[5].Information[0].Value.Number[0]
+                              }{" "}
+                              °C
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Boiling Point */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                          ?.Section?.[4]?.Information?.[0]?.Value
+                          ?.Number?.[0] && (
+                          <TableRow>
+                            <TableCell className="font-medium">
+                              Titik Didih
+                            </TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[1]
+                                  .Section[4].Information[0].Value.Number[0]
+                              }{" "}
+                              K
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Solubility */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                          ?.Section?.[6]?.Information?.[0]?.Value
+                          ?.StringWithMarkup?.[0]?.String && (
+                          <TableRow>
+                            <TableCell className="font-medium">
+                              Kelarutan
+                            </TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[1]
+                                  .Section[6].Information[0].Value
+                                  .StringWithMarkup[0].String
+                              }
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* LogP */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                          ?.Section?.[7]?.Information?.[0]?.Value
+                          ?.Number?.[0] && (
+                          <TableRow>
+                            <TableCell className="font-medium">LogP</TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[1]
+                                  .Section[7].Information[0].Value.Number[0]
+                              }
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
 
-                {compound.essential.pharmacology !== "N/A" && (
+                {/* Tampilkan sifat komputasi dari CSV */}
+                {compound.raw?.Record?.Section?.[3]?.Section?.[0] && (
                   <div>
-                    {compound.fda && compound.fda.clinical.purpose && (
-                      <Separator />
-                    )}
-                    <div className="mt-2">
-                      <p className="text-slate-700 whitespace-pre-line">
-                        {compound.essential.pharmacology}
-                      </p>
-                    </div>
+                    <h3 className="font-medium text-slate-700 mb-2">
+                      Properti Komputasi
+                    </h3>
+                    <Table>
+                      <TableBody>
+                        {/* XLogP3 */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                          ?.Section?.[1]?.Information?.[0]?.Value
+                          ?.Number?.[0] !== undefined && (
+                          <TableRow>
+                            <TableCell className="font-medium">
+                              XLogP3
+                            </TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[0]
+                                  .Section[1].Information[0].Value.Number[0]
+                              }
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Hydrogen Bond Donor Count */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                          ?.Section?.[2]?.Information?.[0]?.Value
+                          ?.Number?.[0] !== undefined && (
+                          <TableRow>
+                            <TableCell className="font-medium">
+                              Donor Ikatan Hidrogen
+                            </TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[0]
+                                  .Section[2].Information[0].Value.Number[0]
+                              }
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Hydrogen Bond Acceptor Count */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                          ?.Section?.[3]?.Information?.[0]?.Value
+                          ?.Number?.[0] !== undefined && (
+                          <TableRow>
+                            <TableCell className="font-medium">
+                              Akseptor Ikatan Hidrogen
+                            </TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[0]
+                                  .Section[3].Information[0].Value.Number[0]
+                              }
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Rotatable Bond Count */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                          ?.Section?.[4]?.Information?.[0]?.Value
+                          ?.Number?.[0] !== undefined && (
+                          <TableRow>
+                            <TableCell className="font-medium">
+                              Jumlah Ikatan Dapat Diputar
+                            </TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[0]
+                                  .Section[4].Information[0].Value.Number[0]
+                              }
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Topological Polar Surface Area */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                          ?.Section?.[7]?.Information?.[0]?.Value
+                          ?.Number?.[0] !== undefined && (
+                          <TableRow>
+                            <TableCell className="font-medium">
+                              Luas Permukaan Polar Topologi
+                            </TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[0]
+                                  .Section[7].Information[0].Value.Number[0]
+                              }{" "}
+                              Å²
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Heavy Atom Count */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                          ?.Section?.[8]?.Information?.[0]?.Value
+                          ?.Number?.[0] !== undefined && (
+                          <TableRow>
+                            <TableCell className="font-medium">
+                              Jumlah Atom Berat
+                            </TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[0]
+                                  .Section[8].Information[0].Value.Number[0]
+                              }
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Complexity */}
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                          ?.Section?.[10]?.Information?.[0]?.Value
+                          ?.Number?.[0] !== undefined && (
+                          <TableRow>
+                            <TableCell className="font-medium">
+                              Kompleksitas
+                            </TableCell>
+                            <TableCell>
+                              {
+                                compound.raw.Record.Section[3].Section[0]
+                                  .Section[10].Information[0].Value.Number[0]
+                              }
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Peringatan FDA dan Toksisitas */}
+          {(compound.fda && compound.fda.clinical.warnings) ||
+          compound.essential.toxicity !== "N/A" ? (
+            <Alert
+              variant="destructive"
+              className="bg-red-50 border-red-200 text-red-800"
+            >
+              <MdOutlineWarning className="h-5 w-5 text-red-600" />
+              <AlertTitle>Peringatan & Toksisitas</AlertTitle>
+              <AlertDescription className="mt-2 whitespace-pre-line">
+                {compound.fda && compound.fda.clinical.warnings && (
+                  <div className="mb-4">
+                    <strong>Peringatan FDA:</strong>{" "}
+                    {compound.fda.clinical.warnings}
+                  </div>
+                )}
+                {compound.essential.toxicity !== "N/A" && (
+                  <div>
+                    <strong>Toksisitas:</strong> {compound.essential.toxicity}
+                  </div>
+                )}
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          {/* Chemical Safety dari CSV jika tersedia */}
+          {compound.raw?.Record?.Section?.[1]?.Information?.[0]?.Value
+            ?.StringWithMarkup?.[0]?.Markup && (
+            <Card className="border-amber-200 bg-amber-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-amber-800">
+                  <MdOutlineWarningAmber className="text-amber-600" /> Keamanan
+                  Kimia
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-3">
+                  {compound.raw.Record.Section[1].Information[0].Value.StringWithMarkup[0].Markup.map(
+                    (icon, index) => (
+                      <div key={index} className="flex flex-col items-center">
+                        <div className="bg-white p-2 rounded-md border border-amber-200">
+                          <Badge
+                            variant="outline"
+                            className="h-12 w-12 flex items-center justify-center p-2"
+                          >
+                            {icon.Extra}
+                          </Badge>
+                        </div>
+                        <span className="text-xs mt-1 text-amber-700">
+                          {icon.Extra}
+                        </span>
+                      </div>
+                    )
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
 
-          {compound.fda && compound.fda.clinical.warnings && (
-            <Alert
-              variant="destructive"
-              className="bg-red-50 border-red-200 text-red-800"
-            >
-              <MdOutlineWarning className="h-5 w-5 text-red-600" />
-              <AlertTitle>Peringatan FDA</AlertTitle>
-              <AlertDescription className="mt-2 whitespace-pre-line text-sm">
-                {compound.fda.clinical.warnings}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {compound.essential.toxicity !== "N/A" && (
-            <Alert
-              variant="destructive"
-              className="bg-red-50 border-red-200 text-red-800"
-            >
-              <MdOutlineWarning className="h-5 w-5 text-red-600" />
-              <AlertTitle>Informasi Toksisitas</AlertTitle>
-              <AlertDescription className="mt-2 whitespace-pre-line">
-                {compound.essential.toxicity}
-              </AlertDescription>
-            </Alert>
-          )}
-
+          {/* Informasi Produk FDA */}
           {compound.fda && compound.fda.identification.manufacturerName && (
             <Card className="bg-slate-50 border-slate-200">
               <CardHeader className="pb-2">
@@ -853,6 +1370,31 @@ export default function DrugDetailPage() {
                       </h3>
                       <p>{compound.fda.clinical.activeIngredient}</p>
                     </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Drug Class Information */}
+          {compound.raw?.Record?.Section?.[3]?.Section?.[2]?.Section?.[0] && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MdBookmark className="text-green-600" /> Kelas & Klasifikasi
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {compound.raw.Record.Section[3].Section[2].Section[0].Information.map(
+                    (info, index) =>
+                      info?.Value?.StringWithMarkup?.[0]?.String && (
+                        <div key={index} className="mb-2">
+                          <Badge variant="secondary" className="text-sm">
+                            {info.Value.StringWithMarkup[0].String}
+                          </Badge>
+                        </div>
+                      )
                   )}
                 </div>
               </CardContent>
@@ -1346,6 +1888,40 @@ export default function DrugDetailPage() {
                 </CardContent>
               </Card>
             )
+          )}
+
+          {/* Chemical Safety dari CSV jika tersedia */}
+          {compound.raw?.Record?.Section?.[1]?.Information?.[0]?.Value
+            ?.StringWithMarkup?.[0]?.Markup && (
+            <Card>
+              <CardHeader className="bg-red-50">
+                <CardTitle className="flex items-center gap-2 text-red-800">
+                  <MdOutlineWarningAmber className="text-red-600" /> Simbol
+                  Keamanan Kimia
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="flex flex-wrap gap-4">
+                  {compound.raw.Record.Section[1].Information[0].Value.StringWithMarkup[0].Markup.map(
+                    (icon, index) => (
+                      <div key={index} className="flex flex-col items-center">
+                        <div className="bg-white p-3 rounded-md border border-red-200 shadow-sm">
+                          <Badge
+                            variant="outline"
+                            className="h-16 w-16 flex items-center justify-center p-2"
+                          >
+                            {icon.Extra}
+                          </Badge>
+                        </div>
+                        <span className="text-sm mt-2 text-center text-red-800">
+                          {icon.Extra}
+                        </span>
+                      </div>
+                    )
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
@@ -1974,49 +2550,241 @@ function ChemicalPropertiesTable({ compound }) {
     });
   };
 
-  const tableData = [
-    {
+  // Initialize with core properties, filtering out N/A values
+  const tableData = [];
+
+  // Add formula if available
+  if (
+    compound.essential.molecularFormula &&
+    compound.essential.molecularFormula !== "N/A"
+  ) {
+    tableData.push({
       label: "Formula Molekul",
       value: formatFormula(compound.essential.molecularFormula),
-    },
-    { label: "Berat Molekul", value: compound.essential.molecularWeight },
-    {
+    });
+  }
+
+  // Add molecular weight if available
+  if (
+    compound.essential.molecularWeight &&
+    compound.essential.molecularWeight !== "N/A"
+  ) {
+    tableData.push({
+      label: "Berat Molekul",
+      value: compound.essential.molecularWeight,
+    });
+  }
+
+  // Add IUPAC Name if available
+  if (compound.essential.iupacName && compound.essential.iupacName !== "N/A") {
+    tableData.push({
+      label: "Nama IUPAC",
+      value: compound.essential.iupacName,
+    });
+  }
+
+  // Add SMILES if available
+  if (
+    compound.essential.canonicalSmiles &&
+    compound.essential.canonicalSmiles !== "N/A"
+  ) {
+    tableData.push({
       label: "SMILES",
       value: compound.essential.canonicalSmiles,
       isCode: true,
-    },
-    { label: "InChI Key", value: compound.essential.inchiKey, isCode: true },
-  ];
+    });
+  }
 
-  const chemPhysProps =
-    compound.formatted.sections["Chemical and Physical Properties"];
-  if (chemPhysProps && chemPhysProps.subsections) {
-    const computedProps = chemPhysProps.subsections.find(
-      (s) =>
-        s.name === "Computed Properties" ||
-        s.name === "Chemical and Physical Properties"
-    );
+  // Add InChI if available from CSV data
+  if (
+    compound.raw?.Record?.Section?.[2]?.Section?.[1]?.Section?.[1]
+      ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String
+  ) {
+    tableData.push({
+      label: "InChI",
+      value:
+        compound.raw.Record.Section[2].Section[1].Section[1].Information[0]
+          .Value.StringWithMarkup[0].String,
+      isCode: true,
+    });
+  }
 
-    if (computedProps && computedProps.data) {
-      Object.entries(computedProps.data).forEach(([key, valueObj]) => {
-        const value = valueObj.value;
-        if (
-          !tableData.some(
-            (item) => item.label.toLowerCase() === key.toLowerCase()
-          )
-        ) {
-          if (typeof value === "object" && value !== null) {
-            if (value.formatted) {
-              tableData.push({ label: key, value: value.formatted });
-            } else if (value.text) {
-              tableData.push({ label: key, value: value.text });
-            }
-          } else {
-            tableData.push({ label: key, value });
-          }
-        }
+  // Add InChI Key if available
+  if (compound.essential.inchiKey && compound.essential.inchiKey !== "N/A") {
+    tableData.push({
+      label: "InChI Key",
+      value: compound.essential.inchiKey,
+      isCode: true,
+    });
+  }
+
+  // Add XLogP3 from CSV if available
+  if (
+    compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[1]
+      ?.Information?.[0]?.Value?.Number?.[0] !== undefined
+  ) {
+    tableData.push({
+      label: "XLogP3",
+      value:
+        compound.raw.Record.Section[3].Section[0].Section[1].Information[0]
+          .Value.Number[0],
+    });
+  }
+
+  // Add Hydrogen Bond Donor Count from CSV
+  if (
+    compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[2]
+      ?.Information?.[0]?.Value?.Number?.[0] !== undefined
+  ) {
+    tableData.push({
+      label: "Jumlah Donor Ikatan Hidrogen",
+      value:
+        compound.raw.Record.Section[3].Section[0].Section[2].Information[0]
+          .Value.Number[0],
+    });
+  }
+
+  // Add Hydrogen Bond Acceptor Count from CSV
+  if (
+    compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[3]
+      ?.Information?.[0]?.Value?.Number?.[0] !== undefined
+  ) {
+    tableData.push({
+      label: "Jumlah Akseptor Ikatan Hidrogen",
+      value:
+        compound.raw.Record.Section[3].Section[0].Section[3].Information[0]
+          .Value.Number[0],
+    });
+  }
+
+  // Add Rotatable Bond Count from CSV
+  if (
+    compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[4]
+      ?.Information?.[0]?.Value?.Number?.[0] !== undefined
+  ) {
+    tableData.push({
+      label: "Jumlah Ikatan Dapat Diputar",
+      value:
+        compound.raw.Record.Section[3].Section[0].Section[4].Information[0]
+          .Value.Number[0],
+    });
+  }
+
+  // Add Exact Mass from CSV
+  if (
+    compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[5]
+      ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String
+  ) {
+    tableData.push({
+      label: "Massa Tepat",
+      value:
+        compound.raw.Record.Section[3].Section[0].Section[5].Information[0]
+          .Value.StringWithMarkup[0].String + " Da",
+    });
+  }
+
+  // Add Topological Polar Surface Area from CSV
+  if (
+    compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[7]
+      ?.Information?.[0]?.Value?.Number?.[0] !== undefined
+  ) {
+    tableData.push({
+      label: "Luas Permukaan Polar Topologi",
+      value:
+        compound.raw.Record.Section[3].Section[0].Section[7].Information[0]
+          .Value.Number[0] + " Å²",
+    });
+  }
+
+  // Add Heavy Atom Count from CSV
+  if (
+    compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[8]
+      ?.Information?.[0]?.Value?.Number?.[0] !== undefined
+  ) {
+    tableData.push({
+      label: "Jumlah Atom Berat",
+      value:
+        compound.raw.Record.Section[3].Section[0].Section[8].Information[0]
+          .Value.Number[0],
+    });
+  }
+
+  // Add Complexity from CSV
+  if (
+    compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[10]
+      ?.Information?.[0]?.Value?.Number?.[0] !== undefined
+  ) {
+    tableData.push({
+      label: "Kompleksitas",
+      value:
+        compound.raw.Record.Section[3].Section[0].Section[10].Information[0]
+          .Value.Number[0],
+    });
+  }
+
+  // Add Defined Atom Stereocenter Count from CSV
+  if (
+    compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[12]
+      ?.Information?.[0]?.Value?.Number?.[0] !== undefined
+  ) {
+    tableData.push({
+      label: "Jumlah Stereocenter Atom Terdefinisi",
+      value:
+        compound.raw.Record.Section[3].Section[0].Section[12].Information[0]
+          .Value.Number[0],
+    });
+  }
+
+  // Add experimental properties from CSV
+  const expProperties = compound.raw?.Record?.Section?.[3]?.Section?.[1];
+  if (expProperties) {
+    // Add Melting Point
+    if (expProperties.Section?.[5]?.Information?.[0]?.Value?.Number?.[0]) {
+      tableData.push({
+        label: "Titik Leleh",
+        value: expProperties.Section[5].Information[0].Value.Number[0] + " °C",
       });
     }
+
+    // Add Boiling Point
+    if (expProperties.Section?.[4]?.Information?.[0]?.Value?.Number?.[0]) {
+      tableData.push({
+        label: "Titik Didih",
+        value: expProperties.Section[4].Information[0].Value.Number[0] + " K",
+      });
+    }
+
+    // Add Solubility
+    if (
+      expProperties.Section?.[6]?.Information?.[0]?.Value?.StringWithMarkup?.[0]
+        ?.String
+    ) {
+      tableData.push({
+        label: "Kelarutan",
+        value:
+          expProperties.Section[6].Information[0].Value.StringWithMarkup[0]
+            .String,
+      });
+    }
+
+    // Add LogP
+    if (expProperties.Section?.[7]?.Information?.[0]?.Value?.Number?.[0]) {
+      tableData.push({
+        label: "LogP",
+        value: expProperties.Section[7].Information[0].Value.Number[0],
+      });
+    }
+  }
+
+  // If no data is available, show a message
+  if (tableData.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-slate-500">
+          Properti kimia tidak tersedia untuk senyawa ini
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -2105,15 +2873,15 @@ function SectionCard({
 }
 
 function RenderValue({ value }) {
-  if (value === null || value === undefined) {
+  if (value === null || value === undefined || value === "N/A") {
     return <p className="text-slate-500 italic">Tidak tersedia</p>;
   }
 
   if (typeof value === "object") {
-    if (value.text) {
+    if (value.text && value.text !== "N/A") {
       return <p className="text-slate-600">{value.text}</p>;
     }
-    if (value.formatted) {
+    if (value.formatted && value.formatted !== "N/A") {
       return <p className="text-slate-600">{value.formatted}</p>;
     }
     if (value.type === "url" && value.url) {
@@ -2128,7 +2896,17 @@ function RenderValue({ value }) {
         </a>
       );
     }
+    // Check if object has at least one non-N/A value
+    const hasValidData = Object.values(value).some((v) => v && v !== "N/A");
+    if (!hasValidData) {
+      return <p className="text-slate-500 italic">Tidak tersedia</p>;
+    }
     return <p className="text-slate-600">{JSON.stringify(value)}</p>;
+  }
+
+  // Handle strings
+  if (typeof value === "string" && value.trim() === "") {
+    return <p className="text-slate-500 italic">Tidak tersedia</p>;
   }
 
   return <p className="text-slate-600">{value}</p>;
@@ -2185,7 +2963,20 @@ function renderSectionIfExists(compound, sectionName, subsectionName) {
   if (!section) return null;
 
   const subsection = section.subsections.find((s) => s.name === subsectionName);
-  if (!subsection || Object.keys(subsection.data).length === 0) return null;
+  if (!subsection) return null;
+
+  // Check if subsection has at least one non-N/A value
+  const hasValidData = Object.entries(subsection.data).some(
+    ([key, valueObj]) => {
+      const value = valueObj.value;
+      if (Array.isArray(value)) {
+        return value.length > 0 && value[0] !== "N/A";
+      }
+      return value !== null && value !== undefined && value !== "N/A";
+    }
+  );
+
+  if (!hasValidData) return null;
 
   return (
     <Card>
@@ -2195,17 +2986,24 @@ function renderSectionIfExists(compound, sectionName, subsectionName) {
       <CardContent>
         {Object.entries(subsection.data).map(([key, valueObj], idx) => {
           const value = valueObj.value;
+          if (value === "N/A" || value === null || value === undefined)
+            return null;
+
           return (
             <div key={idx} className="mb-4 last:mb-0">
               <h4 className="font-medium text-slate-700 mb-1">{key}</h4>
               {Array.isArray(value) ? (
-                <div className="flex flex-wrap gap-2">
-                  {value.map((item, i) => (
-                    <Badge key={i} variant="secondary">
-                      {item}
-                    </Badge>
-                  ))}
-                </div>
+                value.length > 0 && value[0] !== "N/A" ? (
+                  <div className="flex flex-wrap gap-2">
+                    {value.map((item, i) => (
+                      <Badge key={i} variant="secondary">
+                        {item}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 italic">Tidak tersedia</p>
+                )
               ) : (
                 <RenderValue value={value} />
               )}
