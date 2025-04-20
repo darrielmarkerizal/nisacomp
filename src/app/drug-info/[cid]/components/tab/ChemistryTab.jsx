@@ -4,6 +4,7 @@ import {
   MdOutlineScience,
   MdBookmark,
   MdOutlineContentCopy,
+  MdOutlineInfo,
 } from "react-icons/md";
 import { toast } from "sonner";
 
@@ -42,6 +43,11 @@ function ChemistryTab({ compound, setImageDialogOpen }) {
       .catch(() => {
         toast.error("Gagal menyalin teks");
       });
+  };
+
+  // Helper function to check if a value is available
+  const isValueAvailable = (value) => {
+    return value && value !== "N/A";
   };
 
   return (
@@ -154,17 +160,26 @@ function ChemistryTab({ compound, setImageDialogOpen }) {
               Nama IUPAC
             </h3>
             <div className="font-medium break-words p-3 bg-slate-50 rounded-md border border-slate-100 relative">
-              {compound.essential.iupacName}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-2"
-                onClick={() =>
-                  copyToClipboard(compound.essential.iupacName, "Nama IUPAC")
-                }
-              >
-                <MdOutlineContentCopy className="h-4 w-4" />
-              </Button>
+              {isValueAvailable(compound.essential.iupacName) ? (
+                <>
+                  {compound.essential.iupacName}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-2"
+                    onClick={() =>
+                      copyToClipboard(
+                        compound.essential.iupacName,
+                        "Nama IUPAC"
+                      )
+                    }
+                  >
+                    <MdOutlineContentCopy className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <span className="text-slate-400 italic">Tidak tersedia</span>
+              )}
             </div>
           </div>
 
@@ -190,19 +205,27 @@ function ChemistryTab({ compound, setImageDialogOpen }) {
                 </Tooltip>
               </TooltipProvider>
               <div className="relative">
-                <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto">
-                  {compound.essential.inchiKey}
-                </p>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-2"
-                  onClick={() =>
-                    copyToClipboard(compound.essential.inchiKey, "InChIKey")
-                  }
-                >
-                  <MdOutlineContentCopy className="h-3.5 w-3.5" />
-                </Button>
+                {isValueAvailable(compound.essential.inchiKey) ? (
+                  <>
+                    <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto">
+                      {compound.essential.inchiKey}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-2"
+                      onClick={() =>
+                        copyToClipboard(compound.essential.inchiKey, "InChIKey")
+                      }
+                    >
+                      <MdOutlineContentCopy className="h-3.5 w-3.5" />
+                    </Button>
+                  </>
+                ) : (
+                  <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto text-slate-400 italic">
+                    Tidak tersedia
+                  </p>
+                )}
               </div>
             </div>
 
@@ -226,22 +249,30 @@ function ChemistryTab({ compound, setImageDialogOpen }) {
                 </Tooltip>
               </TooltipProvider>
               <div className="relative">
-                <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto max-h-16">
-                  {compound.essential.canonicalSmiles}
-                </p>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-2"
-                  onClick={() =>
-                    copyToClipboard(
-                      compound.essential.canonicalSmiles,
-                      "SMILES"
-                    )
-                  }
-                >
-                  <MdOutlineContentCopy className="h-3.5 w-3.5" />
-                </Button>
+                {isValueAvailable(compound.essential.canonicalSmiles) ? (
+                  <>
+                    <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto max-h-16">
+                      {compound.essential.canonicalSmiles}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-2"
+                      onClick={() =>
+                        copyToClipboard(
+                          compound.essential.canonicalSmiles,
+                          "SMILES"
+                        )
+                      }
+                    >
+                      <MdOutlineContentCopy className="h-3.5 w-3.5" />
+                    </Button>
+                  </>
+                ) : (
+                  <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto text-slate-400 italic">
+                    Tidak tersedia
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -615,45 +646,64 @@ function ChemicalPropertiesTable({ compound }) {
   // If no data is available, show a message
   if (tableData.length === 0) {
     return (
-      <div className="py-8 text-center">
-        <p className="text-slate-500">
+      <div className="py-10 text-center">
+        <div className="inline-flex items-center justify-center p-4 rounded-full bg-slate-100 mb-3">
+          <MdOutlineInfo className="h-6 w-6 text-slate-500" />
+        </div>
+        <p className="text-slate-600 font-medium">
           Properti kimia tidak tersedia untuk senyawa ini
         </p>
       </div>
     );
   }
 
+  // Tampilan tabel yang diperbarui dengan UI modern dan responsif
   return (
-    <Table>
-      <TableHeader className="bg-slate-50">
-        <TableRow>
-          <TableHead className="w-1/3 font-medium text-slate-700">
-            Properti
-          </TableHead>
-          <TableHead className="font-medium text-slate-700">Nilai</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {tableData.map((row, index) => (
-          <TableRow key={index}>
-            <TableCell className="font-medium text-slate-700">
-              {row.label}
-            </TableCell>
-            <TableCell>
-              {row.isCode ? (
-                <div className="max-w-[250px] sm:max-w-xs lg:max-w-md overflow-auto">
-                  <span className="font-mono text-xs bg-slate-50 p-1.5 rounded border border-slate-200 inline-block">
-                    {row.value}
+    <div className="overflow-hidden rounded-lg border border-slate-200 shadow-sm">
+      <Table>
+        <TableHeader className="bg-gradient-to-r from-slate-50 to-slate-100 sticky top-0 z-10">
+          <TableRow>
+            <TableHead className="w-2/5 sm:w-1/3 font-medium text-slate-700 py-3.5 px-4">
+              <span className="block text-sm">Properti</span>
+            </TableHead>
+            <TableHead className="font-medium text-slate-700 py-3.5 px-4">
+              <span className="block text-sm">Nilai</span>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {tableData.map((row, index) => (
+            <TableRow
+              key={index}
+              className={`transition-colors border-b last:border-0 ${index % 2 === 0 ? "bg-white" : "bg-slate-50/40"} hover:bg-slate-100/40`}
+            >
+              <TableCell className="font-medium text-slate-700 py-3.5 px-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm sm:text-base leading-relaxed">
+                    {row.label}
                   </span>
                 </div>
-              ) : (
-                <span className="text-slate-800">{row.value}</span>
-              )}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+              </TableCell>
+              <TableCell className="py-3.5 px-4">
+                {row.isCode ? (
+                  <div className="w-full overflow-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+                    <span className="font-mono text-xs bg-white p-2 rounded-md border border-slate-200 inline-block shadow-sm">
+                      {row.value}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <span className="text-sm sm:text-base text-slate-800 font-medium">
+                      {row.value}
+                    </span>
+                  </div>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 
