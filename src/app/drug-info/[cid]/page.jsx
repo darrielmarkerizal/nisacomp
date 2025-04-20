@@ -75,6 +75,426 @@ import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
+// Function to properly format molecular formulas with subscripts for numbers
+const formatFormula = (formula) => {
+  if (!formula) return "N/A";
+  return formula.split("").map((char, index) => {
+    return /\d/.test(char) ? <sub key={index}>{char}</sub> : char;
+  });
+};
+
+// Function to extract and format physical properties
+const extractPhysicalProperties = (compound) => {
+  // Initialize with core properties, filtering out N/A values
+  const properties = [
+    {
+      name: "Formula Molekul",
+      value: compound.essential.molecularFormula,
+      formatter: formatFormula,
+    },
+    {
+      name: "Berat Molekul",
+      value: compound.essential.molecularWeight,
+      unit: "g/mol",
+    },
+    {
+      name: "XLogP3",
+      value:
+        compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[1]
+          ?.Information?.[0]?.Value?.Number?.[0],
+      description: "Koefisien partisi oktanol-air",
+    },
+    {
+      name: "Donor Ikatan Hidrogen",
+      value:
+        compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[2]
+          ?.Information?.[0]?.Value?.Number?.[0],
+    },
+    {
+      name: "Akseptor Ikatan Hidrogen",
+      value:
+        compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[3]
+          ?.Information?.[0]?.Value?.Number?.[0],
+    },
+    {
+      name: "Ikatan Dapat Diputar",
+      value:
+        compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[4]
+          ?.Information?.[0]?.Value?.Number?.[0],
+    },
+    {
+      name: "Luas Permukaan Polar Topologi",
+      value:
+        compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[7]
+          ?.Information?.[0]?.Value?.Number?.[0],
+      unit: "Å²",
+    },
+    {
+      name: "Massa Monoisotopik",
+      value:
+        compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[6]
+          ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String,
+      unit: "Da",
+    },
+  ];
+
+  // Add experimental properties if available
+  if (compound.raw?.Record?.Section?.[3]?.Section?.[1]) {
+    // Physical Description
+    if (
+      compound.raw.Record.Section[3].Section[1].Section[0]?.Information?.[0]
+        ?.Value?.StringWithMarkup?.[0]?.String
+    ) {
+      properties.push({
+        name: "Deskripsi Fisik",
+        value:
+          compound.raw.Record.Section[3].Section[1].Section[0].Information[0]
+            .Value.StringWithMarkup[0].String,
+      });
+    }
+
+    // Color/Form
+    if (
+      compound.raw.Record.Section[3].Section[1].Section[1]?.Information?.[0]
+        ?.Value?.StringWithMarkup?.[0]?.String
+    ) {
+      properties.push({
+        name: "Warna/Bentuk",
+        value:
+          compound.raw.Record.Section[3].Section[1].Section[1].Information[0]
+            .Value.StringWithMarkup[0].String,
+      });
+    }
+
+    // Odor
+    if (
+      compound.raw.Record.Section[3].Section[1].Section[2]?.Information?.[0]
+        ?.Value?.StringWithMarkup?.[0]?.String
+    ) {
+      properties.push({
+        name: "Bau",
+        value:
+          compound.raw.Record.Section[3].Section[1].Section[2].Information[0]
+            .Value.StringWithMarkup[0].String,
+      });
+    }
+
+    // Taste
+    if (
+      compound.raw.Record.Section[3].Section[1].Section[3]?.Information?.[0]
+        ?.Value?.StringWithMarkup?.[0]?.String
+    ) {
+      properties.push({
+        name: "Rasa",
+        value:
+          compound.raw.Record.Section[3].Section[1].Section[3].Information[0]
+            .Value.StringWithMarkup[0].String,
+      });
+    }
+
+    // Melting Point
+    if (
+      compound.raw.Record.Section[3].Section[1].Section[5]?.Information?.[0]
+        ?.Value?.Number?.[0]
+    ) {
+      properties.push({
+        name: "Titik Leleh",
+        value:
+          compound.raw.Record.Section[3].Section[1].Section[5].Information[0]
+            .Value.Number[0],
+        unit: "°C",
+      });
+    }
+
+    // Boiling Point
+    if (
+      compound.raw.Record.Section[3].Section[1].Section[4]?.Information?.[0]
+        ?.Value?.Number?.[0]
+    ) {
+      properties.push({
+        name: "Titik Didih",
+        value:
+          compound.raw.Record.Section[3].Section[1].Section[4].Information[0]
+            .Value.Number[0],
+        unit: "K",
+      });
+    }
+
+    // Solubility
+    if (
+      compound.raw.Record.Section[3].Section[1].Section[6]?.Information?.[0]
+        ?.Value?.StringWithMarkup?.[0]?.String
+    ) {
+      properties.push({
+        name: "Kelarutan",
+        value:
+          compound.raw.Record.Section[3].Section[1].Section[6].Information[0]
+            .Value.StringWithMarkup[0].String,
+      });
+    }
+  }
+
+  return properties.filter(
+    (prop) => prop.value !== undefined && prop.value !== "N/A"
+  );
+};
+
+// Function to extract safety information
+const extractSafetyInfo = (compound) => {
+  const safetyInfo = [];
+
+  // Extract chemical safety icons and warnings
+  if (
+    compound.raw?.Record?.Section?.[1]?.Information?.[0]?.Value
+      ?.StringWithMarkup?.[0]?.Markup
+  ) {
+    const hazards =
+      compound.raw.Record.Section[1].Information[0].Value.StringWithMarkup[0].Markup.map(
+        (markup) => markup.Extra
+      ).filter(Boolean);
+
+    if (hazards.length) {
+      safetyInfo.push({
+        title: "Simbol Keamanan Kimia",
+        content: hazards,
+        type: "icons",
+      });
+    }
+  }
+
+  // Add toxicity information if available
+  if (compound.essential.toxicity && compound.essential.toxicity !== "N/A") {
+    safetyInfo.push({
+      title: "Toksisitas",
+      content: compound.essential.toxicity,
+      type: "text",
+    });
+  }
+
+  // Add safety hazards if available
+  if (
+    compound.essential.safetyHazards &&
+    compound.essential.safetyHazards !== "N/A"
+  ) {
+    safetyInfo.push({
+      title: "Bahaya Keselamatan",
+      content: compound.essential.safetyHazards,
+      type: "text",
+    });
+  }
+
+  return safetyInfo;
+};
+
+// Function to extract enhanced synonyms with categorization
+const extractEnhancedSynonyms = (compound) => {
+  const synonymCategories = {
+    common: [],
+    chemical: [],
+    trade: [],
+    codes: [],
+  };
+
+  // Function to categorize synonyms based on patterns
+  const categorizeSynonym = (synonym) => {
+    // Check for trade names (usually capitalized without numbers or special notation)
+    if (/^[A-Z][a-z]+$/.test(synonym) || synonym.includes(" (TN)")) {
+      return "trade";
+    }
+    // Check for chemical codes (contains numbers and letters in specific patterns)
+    else if (
+      /[A-Z]+-\d+/.test(synonym) ||
+      /\d{5,}/.test(synonym) ||
+      /^[A-Z]+\d+$/.test(synonym) ||
+      /CAS|CID|UNII|NSC|HSDB/.test(synonym)
+    ) {
+      return "codes";
+    }
+    // Check for chemical notation (has special notation)
+    else if (synonym.includes("(") && /\([^)]*\)/.test(synonym)) {
+      return "chemical";
+    }
+    // Default to common names
+    else {
+      return "common";
+    }
+  };
+
+  // Get synonyms from essential data
+  const allSynonyms = compound.essential.synonyms || [];
+
+  // Add MeSH terms if available
+  if (
+    compound.raw?.Record?.Section?.[2]?.Section?.[4]?.Section?.[0]
+      ?.Information?.[0]?.Value?.StringWithMarkup
+  ) {
+    compound.raw.Record.Section[2].Section[4].Section[0].Information[0].Value.StringWithMarkup.forEach(
+      (item) => {
+        if (item.String && !allSynonyms.includes(item.String)) {
+          allSynonyms.push(item.String);
+        }
+      }
+    );
+  }
+
+  // Add depositor-supplied synonyms if available
+  if (
+    compound.raw?.Record?.Section?.[2]?.Section?.[4]?.Section?.[1]
+      ?.Information?.[0]?.Value?.StringWithMarkup
+  ) {
+    compound.raw.Record.Section[2].Section[4].Section[1].Information[0].Value.StringWithMarkup.forEach(
+      (item) => {
+        if (item.String && !allSynonyms.includes(item.String)) {
+          allSynonyms.push(item.String);
+        }
+      }
+    );
+  }
+
+  // Categorize each synonym
+  allSynonyms.forEach((synonym) => {
+    if (synonym !== "N/A") {
+      const category = categorizeSynonym(synonym);
+      synonymCategories[category].push(synonym);
+    }
+  });
+
+  return synonymCategories;
+};
+
+// Function to extract enhanced identification data
+const extractIdentifiers = (compound) => {
+  const identifiers = [];
+
+  // Extract CAS number
+  if (
+    compound.raw?.Record?.Section?.[2]?.Section?.[3]?.Section?.[0]
+      ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String
+  ) {
+    identifiers.push({
+      name: "CAS",
+      value:
+        compound.raw.Record.Section[2].Section[3].Section[0].Information[0]
+          .Value.StringWithMarkup[0].String,
+    });
+  }
+
+  // Extract EC number
+  if (
+    compound.raw?.Record?.Section?.[2]?.Section?.[3]?.Section?.[3]
+      ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String
+  ) {
+    identifiers.push({
+      name: "EC Number",
+      value:
+        compound.raw.Record.Section[2].Section[3].Section[3].Information[0]
+          .Value.StringWithMarkup[0].String,
+    });
+  }
+
+  // Extract UNII
+  if (
+    compound.raw?.Record?.Section?.[2]?.Section?.[3]?.Section?.[4]
+      ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String
+  ) {
+    identifiers.push({
+      name: "UNII",
+      value:
+        compound.raw.Record.Section[2].Section[3].Section[4].Information[0]
+          .Value.StringWithMarkup[0].String,
+    });
+  }
+
+  // Extract ChEBI ID
+  if (
+    compound.raw?.Record?.Section?.[2]?.Section?.[3]?.Section?.[5]
+      ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String
+  ) {
+    identifiers.push({
+      name: "ChEBI ID",
+      value:
+        compound.raw.Record.Section[2].Section[3].Section[5].Information[0]
+          .Value.StringWithMarkup[0].String,
+    });
+  }
+
+  // Extract DrugBank ID
+  if (
+    compound.raw?.Record?.Section?.[2]?.Section?.[3]?.Section?.[7]
+      ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String
+  ) {
+    identifiers.push({
+      name: "DrugBank ID",
+      value:
+        compound.raw.Record.Section[2].Section[3].Section[7].Information[0]
+          .Value.StringWithMarkup[0].String,
+    });
+  }
+
+  return identifiers;
+};
+
+// Function to extract comprehensive pharmacology information
+const extractPharmacologyInfo = (compound) => {
+  const pharmacologyInfo = [];
+
+  // Get all record descriptions which often contain pharmacology info
+  if (compound.raw?.Record?.Section?.[2]?.Section?.[0]?.Information) {
+    compound.raw.Record.Section[2].Section[0].Information.forEach((info) => {
+      if (info?.Value?.StringWithMarkup?.[0]?.String) {
+        pharmacologyInfo.push({
+          title: "Deskripsi PubChem",
+          content: info.Value.StringWithMarkup[0].String,
+          source: info.ReferenceNumber
+            ? `Referensi #${info.ReferenceNumber}`
+            : "PubChem",
+        });
+      }
+    });
+  }
+
+  // Add FDA pharmacology info if available
+  if (compound.fda) {
+    if (compound.fda.pharmacology?.mechanismOfAction) {
+      pharmacologyInfo.push({
+        title: "Mekanisme Aksi (FDA)",
+        content: compound.fda.pharmacology.mechanismOfAction,
+        source: "FDA",
+      });
+    }
+
+    if (compound.fda.pharmacology?.physiologicEffect) {
+      pharmacologyInfo.push({
+        title: "Efek Fisiologis (FDA)",
+        content: compound.fda.pharmacology.physiologicEffect,
+        source: "FDA",
+      });
+    }
+
+    if (compound.fda.clinical?.purpose) {
+      pharmacologyInfo.push({
+        title: "Tujuan Terapeutik (FDA)",
+        content: compound.fda.clinical.purpose,
+        source: "FDA",
+      });
+    }
+  }
+
+  // Add pharmacology from essential data
+  if (
+    compound.essential.pharmacology &&
+    compound.essential.pharmacology !== "N/A"
+  ) {
+    pharmacologyInfo.push({
+      title: "Farmakologi",
+      content: compound.essential.pharmacology,
+      source: "PubChem",
+    });
+  }
+
+  return pharmacologyInfo;
+};
+
 export default function DrugDetailPage() {
   const params = useParams();
   const router = useRouter();
