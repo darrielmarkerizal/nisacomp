@@ -1,10 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
+import Lightbox from "yet-another-react-lightbox";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
+import Captions from "yet-another-react-lightbox/plugins/captions";
+import "yet-another-react-lightbox/styles.css";
+import "yet-another-react-lightbox/plugins/captions.css";
+
 import {
   MdOutlineScience,
   MdBookmark,
   MdOutlineContentCopy,
   MdOutlineInfo,
+  MdOutlineZoomIn,
 } from "react-icons/md";
 import { toast } from "sonner";
 
@@ -33,7 +40,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-function ChemistryTab({ compound, setImageDialogOpen }) {
+function ChemistryTab({ compound }) {
+  // State untuk mengelola lightbox
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
   const copyToClipboard = (text, label) => {
     navigator.clipboard
       .writeText(text)
@@ -62,8 +72,71 @@ function ChemistryTab({ compound, setImageDialogOpen }) {
     });
   };
 
+  // Mengambil formula molekul untuk caption
+  const getMolecularFormula = () => {
+    const molecularFormulaSection = compound.raw?.Record?.Section?.find(
+      (section) => section.TOCHeading === "Molecular Formula"
+    );
+
+    if (
+      molecularFormulaSection?.Information?.[0]?.Value?.StringWithMarkup?.[0]
+        ?.String
+    ) {
+      return molecularFormulaSection.Information[0].Value.StringWithMarkup[0]
+        .String;
+    } else if (
+      compound.essential.molecularFormula &&
+      compound.essential.molecularFormula !== "N/A"
+    ) {
+      return compound.essential.molecularFormula;
+    } else if (
+      compound.raw?.Record?.Section?.[2]?.Section?.[2]?.Information?.[0]?.Value
+        ?.StringWithMarkup?.[0]?.String
+    ) {
+      return compound.raw.Record.Section[2].Section[2].Information[0].Value
+        .StringWithMarkup[0].String;
+    }
+
+    return "Formula tidak tersedia";
+  };
+
+  // Slides untuk lightbox
+  const slides = [
+    {
+      src: compound.essential.structureUrl,
+      title: `Struktur Molekul ${compound.name}`,
+      description: `Formula Molekul: ${getMolecularFormula()}`,
+    },
+  ];
+
   return (
     <div className="space-y-6">
+      {/* Lightbox Component */}
+      <Lightbox
+        open={lightboxOpen}
+        close={() => setLightboxOpen(false)}
+        slides={slides}
+        plugins={[Zoom, Captions]}
+        carousel={{ preload: 1 }}
+        zoom={{
+          maxZoomPixelRatio: 5,
+          zoomInMultiplier: 1.5,
+          doubleTapDelay: 300,
+          doubleClickDelay: 300,
+          keyboardMoveDistance: 50,
+        }}
+        captions={{
+          showToggle: true,
+          descriptionMaxLines: 3,
+        }}
+        controller={{ closeOnBackdropClick: true }}
+        styles={{
+          container: { backgroundColor: "rgba(0, 0, 0, .9)" },
+          captionsTitle: { fontSize: "1.1rem", fontWeight: "600" },
+          captionsDescription: { fontSize: "0.9rem" },
+        }}
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="md:col-span-1">
           <CardHeader className="border-b pb-3">
@@ -75,26 +148,34 @@ function ChemistryTab({ compound, setImageDialogOpen }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center text-center pt-4">
-            <div className="p-2 bg-white rounded-lg shadow-sm border">
+            <div
+              className="p-2 bg-white rounded-lg shadow-sm border relative group cursor-pointer"
+              onClick={() => setLightboxOpen(true)}
+            >
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center rounded-lg">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 p-2 rounded-full shadow-lg">
+                  <MdOutlineZoomIn className="h-6 w-6 text-indigo-600" />
+                </div>
+              </div>
               <Image
                 src={compound.essential.structureUrl}
                 alt={`Struktur kimia ${compound.name}`}
                 width={200}
                 height={200}
                 className="mx-auto"
-                onClick={() => setImageDialogOpen(true)}
               />
-              <Button
-                size="sm"
-                variant="secondary"
-                className="mt-2"
-                onClick={() => setImageDialogOpen(true)}
-              >
-                Perbesar
-              </Button>
             </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="mt-2"
+              onClick={() => setLightboxOpen(true)}
+            >
+              <MdOutlineZoomIn className="mr-1 h-4 w-4" />
+              Perbesar Gambar
+            </Button>
 
-            {/* Tampilkan formula molekul - menggunakan path yang sama dengan OverviewTab */}
+            {/* Tampilkan formula molekul - tetap sama */}
             <div className="mt-4 space-y-2">
               <div className="font-medium text-slate-800">
                 {(() => {
@@ -146,6 +227,7 @@ function ChemistryTab({ compound, setImageDialogOpen }) {
           </CardContent>
         </Card>
 
+        {/* Bagian card properti kimia tetap sama */}
         <div className="md:col-span-1 lg:col-span-2">
           <Card>
             <CardHeader className="border-b pb-3">
@@ -165,6 +247,7 @@ function ChemistryTab({ compound, setImageDialogOpen }) {
         </div>
       </div>
 
+      {/* Bagian Identifikasi & Nama Lain tetap sama */}
       <Card>
         <CardHeader className="border-b pb-3">
           <CardTitle className="flex items-center gap-2">
