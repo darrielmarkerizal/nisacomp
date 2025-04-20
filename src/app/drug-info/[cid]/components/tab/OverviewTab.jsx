@@ -1377,7 +1377,7 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
         </Alert>
       ) : null}
 
-      {/* Chemical Safety */}
+      {/* Chemical Safety - Updated to match SafetyTab */}
       {compound.raw?.Record?.Section?.[1]?.Information?.[0]?.Value
         ?.StringWithMarkup?.[0]?.Markup && (
         <Card className="overflow-hidden border-amber-200 shadow-sm hover:shadow-md transition-shadow">
@@ -1386,39 +1386,68 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
               <div className="bg-amber-100 p-1.5 rounded-full">
                 <MdOutlineWarningAmber className="text-amber-600 h-5 w-5" />
               </div>
-              Keamanan Kimia
+              <span>Simbol Keamanan Kimia GHS</span>
             </CardTitle>
+            <CardDescription className="text-amber-700/70">
+              Sistem Harmonisasi Global untuk klasifikasi dan pelabelan bahan
+              kimia
+            </CardDescription>
           </CardHeader>
-          <CardContent className="pt-4 bg-amber-50/30">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {compound.raw.Record.Section[1].Information[0].Value.StringWithMarkup[0].Markup.map(
-                (icon, index) => (
-                  <div key={index} className="flex flex-col items-center">
-                    <div className="bg-white p-3 rounded-md shadow-sm border border-amber-200 hover:shadow-md transition-shadow">
-                      <Badge
-                        variant="outline"
-                        className="h-16 w-16 flex items-center justify-center p-2 bg-amber-50 border-amber-300"
+          <CardContent className="pt-5">
+            {compound.raw.Record.Section[1].Information[0].Value
+              .StringWithMarkup[0].Markup.length > 0 ? (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {compound.raw.Record.Section[1].Information[0].Value.StringWithMarkup[0].Markup.map(
+                    (icon, index) => (
+                      <div
+                        key={index}
+                        className="flex flex-col items-center group"
                       >
-                        {icon.Extra}
-                      </Badge>
-                    </div>
-                    <span className="text-xs mt-2 text-center font-medium text-amber-700 bg-amber-50/50 px-2 py-1 rounded-full">
-                      {icon.Extra}
+                        <div className="bg-white p-3 rounded-lg border border-amber-200 shadow-sm hover:shadow-md transition-all duration-300 w-full">
+                          <div className="aspect-square flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform">
+                            <img
+                              src={icon.URL}
+                              alt={icon.Extra || "Simbol Keamanan"}
+                              className="w-full h-full object-contain max-h-20"
+                            />
+                          </div>
+                        </div>
+                        <div className="mt-2 text-center">
+                          <span className="font-medium text-amber-800 text-xs block">
+                            {icon.Extra}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="mt-1 text-xs bg-amber-50/80 text-amber-700 border-amber-200"
+                          >
+                            Simbol GHS
+                          </Badge>
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-amber-200">
+                  <p className="text-amber-700 text-sm flex items-center gap-2">
+                    <MdOutlineInfo className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                    <span>
+                      Simbol-simbol ini menunjukkan potensi bahaya dan perlu
+                      ditangani dengan hati-hati sesuai protokol keamanan yang
+                      berlaku.
                     </span>
-                  </div>
-                )
-              )}
-            </div>
-            <div className="mt-6 pt-4 border-t border-amber-200">
-              <p className="text-amber-700 text-sm flex items-center bg-amber-50 p-3 rounded-md">
-                <MdOutlineWarning className="inline mr-2 flex-shrink-0" />
-                <span>
-                  Simbol-simbol di atas menunjukkan potensi bahaya dan perlu
-                  ditangani dengan hati-hati sesuai protokol keamanan kimia yang
-                  berlaku.
-                </span>
-              </p>
-            </div>
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="text-center p-6 bg-amber-50/50 border border-amber-100 rounded-lg">
+                <MdOutlineInfo className="h-8 w-8 text-amber-400 mx-auto mb-2" />
+                <p className="text-amber-700">
+                  Tidak ada simbol keamanan GHS yang tersedia untuk senyawa ini.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
