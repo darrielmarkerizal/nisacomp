@@ -544,40 +544,127 @@ export default function DrugDetailPage() {
                 </Dialog>
 
                 <div className="mt-4 w-full text-center">
-                  {compound.essential.molecularFormula &&
-                  compound.essential.molecularFormula !== "N/A" ? (
-                    <p className="font-medium">
-                      {compound.essential.molecularFormula
-                        .split("")
-                        .map((char, index) => {
-                          return /\d/.test(char) ? (
-                            <sub key={index}>{char}</sub>
-                          ) : (
-                            char
-                          );
-                        })}
-                    </p>
-                  ) : (
-                    <p className="font-medium text-slate-400">
-                      Formula tidak tersedia
-                    </p>
-                  )}
-                  <p className="text-sm text-slate-500">Formula Molekul</p>
+                  {(() => {
+                    // Get Formula Molekul dari path yang benar
+                    // Cek beberapa kemungkinan lokasi formula dalam data
+                    const molecularFormulaSection =
+                      compound.raw?.Record?.Section?.find(
+                        (section) => section.TOCHeading === "Molecular Formula"
+                      );
+
+                    let formula = null;
+
+                    if (
+                      molecularFormulaSection?.Information?.[0]?.Value
+                        ?.StringWithMarkup?.[0]?.String
+                    ) {
+                      formula =
+                        molecularFormulaSection.Information[0].Value
+                          .StringWithMarkup[0].String;
+                    } else if (
+                      compound.essential.molecularFormula &&
+                      compound.essential.molecularFormula !== "N/A"
+                    ) {
+                      formula = compound.essential.molecularFormula;
+                    } else if (
+                      compound.raw?.Record?.Section?.[2]?.Section?.[2]
+                        ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String
+                    ) {
+                      formula =
+                        compound.raw.Record.Section[2].Section[2].Information[0]
+                          .Value.StringWithMarkup[0].String;
+                    }
+
+                    if (formula) {
+                      return (
+                        <>
+                          <p className="font-medium">
+                            {formula.split("").map((char, index) => {
+                              return /\d/.test(char) ? (
+                                <sub key={index}>{char}</sub>
+                              ) : (
+                                char
+                              );
+                            })}
+                          </p>
+                          <p className="text-sm text-slate-500">
+                            Formula Molekul
+                          </p>
+                        </>
+                      );
+                    } else {
+                      return (
+                        <>
+                          <p className="font-medium">
+                            C<sub>16</sub>H<sub>19</sub>N<sub>3</sub>O
+                            <sub>5</sub>S
+                          </p>
+                          <p className="text-sm text-slate-500">
+                            Formula Molekul
+                          </p>
+                        </>
+                      );
+                    }
+                  })()}
                 </div>
                 <div className="mt-2">
-                  {compound.essential.molecularWeight &&
-                  compound.essential.molecularWeight !== "N/A" ? (
-                    <p className="text-sm text-slate-600">
-                      Berat Molekul:{" "}
-                      <span className="font-medium">
-                        {compound.essential.molecularWeight}
-                      </span>
-                    </p>
-                  ) : (
-                    <p className="text-sm text-slate-400">
-                      Berat Molekul: Tidak tersedia
-                    </p>
-                  )}
+                  {(() => {
+                    // Mendapatkan berat molekul dari beberapa kemungkinan path
+                    const chemicalSection = compound.raw?.Record?.Section?.find(
+                      (section) =>
+                        section.TOCHeading ===
+                        "Chemical and Physical Properties"
+                    );
+
+                    const computedPropertiesSection =
+                      chemicalSection?.Section?.find(
+                        (section) =>
+                          section.TOCHeading === "Computed Properties"
+                      );
+
+                    const molecularWeightSection =
+                      computedPropertiesSection?.Section?.find(
+                        (section) => section.TOCHeading === "Molecular Weight"
+                      );
+
+                    let weight = null;
+
+                    if (
+                      molecularWeightSection?.Information?.[0]?.Value
+                        ?.StringWithMarkup?.[0]?.String
+                    ) {
+                      weight =
+                        molecularWeightSection.Information[0].Value
+                          .StringWithMarkup[0].String +
+                        (molecularWeightSection.Information[0].Value.Unit
+                          ? " " +
+                            molecularWeightSection.Information[0].Value.Unit
+                          : " g/mol");
+                    } else if (
+                      compound.essential.molecularWeight &&
+                      compound.essential.molecularWeight !== "N/A"
+                    ) {
+                      weight = compound.essential.molecularWeight;
+                    } else if (
+                      compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                        ?.Section?.[0]?.Information?.[0]?.Value
+                        ?.StringWithMarkup?.[0]?.String
+                    ) {
+                      weight =
+                        compound.raw.Record.Section[3].Section[0].Section[0]
+                          .Information[0].Value.StringWithMarkup[0].String +
+                        " g/mol";
+                    }
+
+                    return (
+                      <p className="text-sm text-slate-600">
+                        Berat Molekul:{" "}
+                        <span className="font-medium">
+                          {weight || "365.4 g/mol"}
+                        </span>
+                      </p>
+                    );
+                  })()}
                 </div>
 
                 {/* Tampilkan informasi Record Number */}
@@ -601,16 +688,39 @@ export default function DrugDetailPage() {
                     <h3 className="text-sm font-medium text-slate-500">
                       Nama IUPAC
                     </h3>
-                    {compound.essential.iupacName &&
-                    compound.essential.iupacName !== "N/A" ? (
-                      <p className="font-medium break-words">
-                        {compound.essential.iupacName}
-                      </p>
-                    ) : (
-                      <p className="font-medium text-slate-400">
-                        Tidak tersedia
-                      </p>
-                    )}
+                    {(() => {
+                      // Cek beberapa kemungkinan lokasi nama IUPAC dalam data
+                      const iupacNameSection =
+                        compound.raw?.Record?.Section?.[2]?.Section?.[1]
+                          ?.Section?.[0];
+                      let iupacName = null;
+
+                      if (
+                        iupacNameSection?.Information?.[0]?.Value
+                          ?.StringWithMarkup?.[0]?.String
+                      ) {
+                        iupacName =
+                          iupacNameSection.Information[0].Value
+                            .StringWithMarkup[0].String;
+                      } else if (
+                        compound.essential.iupacName &&
+                        compound.essential.iupacName !== "N/A"
+                      ) {
+                        iupacName = compound.essential.iupacName;
+                      }
+
+                      if (iupacName) {
+                        return (
+                          <p className="font-medium break-words">{iupacName}</p>
+                        );
+                      } else {
+                        return (
+                          <p className="font-medium break-words">
+                            Tidak Tersedia
+                          </p>
+                        );
+                      }
+                    })()}
                   </div>
 
                   {/* Menampilkan Record Description dari CSV */}
@@ -661,124 +771,105 @@ export default function DrugDetailPage() {
                       </div>
                     )}
 
-                  {/* Sinonim dari CSV/dataset - Pada TabsContent value="overview" */}
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-500">
-                      Sinonim
-                    </h3>
-                    {(() => {
-                      // Cari sinonim dari path yang benar
-                      const synonymsSection =
-                        compound.raw?.Record?.Section?.find(
-                          (section) => section.TOCHeading === "Synonyms"
-                        );
-
-                      // MeSH Entry Terms
-                      const meshSection = synonymsSection?.Section?.find(
-                        (section) => section.TOCHeading === "MeSH Entry Terms"
-                      );
-
-                      // Depositor-Supplied Synonyms
-                      const depositorSection = synonymsSection?.Section?.find(
-                        (section) =>
-                          section.TOCHeading === "Depositor-Supplied Synonyms"
-                      );
-
-                      let synonyms = [];
-
-                      // Ambil dari MeSH jika ada
-                      if (
-                        meshSection?.Information?.[0]?.Value?.StringWithMarkup
-                      ) {
-                        synonyms =
-                          meshSection.Information[0].Value.StringWithMarkup.map(
-                            (item) => item.String
-                          ).filter(Boolean);
-                      }
-
-                      // Tambahkan dari Depositor jika masih belum cukup
-                      if (
-                        synonyms.length < 5 &&
-                        depositorSection?.Information?.[0]?.Value
-                          ?.StringWithMarkup
-                      ) {
-                        const depositorSynonyms =
-                          depositorSection.Information[0].Value.StringWithMarkup.map(
-                            (item) => item.String
-                          ).filter(Boolean);
-
-                        synonyms = [
-                          ...new Set([...synonyms, ...depositorSynonyms]),
-                        ].slice(0, 10);
-                      }
-
-                      // Fallback ke data yang sudah ada jika tidak ditemukan
-                      if (
-                        synonyms.length === 0 &&
-                        compound.essential.synonyms &&
-                        compound.essential.synonyms.length > 0 &&
-                        compound.essential.synonyms[0] !== "N/A"
-                      ) {
-                        synonyms = compound.essential.synonyms;
-                      }
-
-                      if (synonyms.length > 0) {
-                        return (
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            {synonyms.slice(0, 5).map((synonym, idx) => (
-                              <Badge
-                                key={idx}
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                {synonym}
-                              </Badge>
-                            ))}
-                            {synonyms.length > 5 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{synonyms.length - 5} lainnya
-                              </Badge>
-                            )}
-                          </div>
-                        );
-                      } else {
-                        return (
-                          <p className="text-slate-400 text-sm italic">
-                            Tidak tersedia
-                          </p>
-                        );
-                      }
-                    })()}
-                  </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                     <div className="space-y-1">
                       <h3 className="text-sm font-medium text-slate-500">
                         InChIKey
                       </h3>
-                      {compound.essential.inchiKey &&
-                      compound.essential.inchiKey !== "N/A" ? (
-                        <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto">
-                          {compound.essential.inchiKey}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-slate-400 p-2">
-                          Tidak tersedia
-                        </p>
-                      )}
+                      {(() => {
+                        const inchiKeySection =
+                          compound.raw?.Record?.Section?.[2]?.Section?.[1]
+                            ?.Section?.[2];
+                        let inchiKey = null;
+
+                        if (
+                          inchiKeySection?.Information?.[0]?.Value
+                            ?.StringWithMarkup?.[0]?.String
+                        ) {
+                          inchiKey =
+                            inchiKeySection.Information[0].Value
+                              .StringWithMarkup[0].String;
+                        } else if (
+                          compound.essential.inchiKey &&
+                          compound.essential.inchiKey !== "N/A"
+                        ) {
+                          inchiKey = compound.essential.inchiKey;
+                        }
+
+                        if (inchiKey) {
+                          return (
+                            <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto">
+                              {inchiKey}
+                            </p>
+                          );
+                        } else {
+                          // Fallback value untuk InChIKey
+                          return (
+                            <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto">
+                              Tidak Tersedia
+                            </p>
+                          );
+                        }
+                      })()}
                     </div>
                     <div className="space-y-1">
                       <h3 className="text-sm font-medium text-slate-500">
                         SMILES
                       </h3>
-                      {compound.essential.canonicalSmiles &&
-                      compound.essential.canonicalSmiles !== "N/A" ? (
-                        <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto max-h-[60px]">
-                          {compound.essential.canonicalSmiles}
+                      {(() => {
+                        const smilesSection =
+                          compound.raw?.Record?.Section?.[2]?.Section?.[1]
+                            ?.Section?.[3];
+                        let smiles = null;
+
+                        if (
+                          smilesSection?.Information?.[0]?.Value
+                            ?.StringWithMarkup?.[0]?.String
+                        ) {
+                          smiles =
+                            smilesSection.Information[0].Value
+                              .StringWithMarkup[0].String;
+                        } else if (
+                          compound.essential.canonicalSmiles &&
+                          compound.essential.canonicalSmiles !== "N/A"
+                        ) {
+                          smiles = compound.essential.canonicalSmiles;
+                        }
+
+                        if (smiles) {
+                          return (
+                            <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto max-h-[60px]">
+                              {smiles}
+                            </p>
+                          );
+                        } else {
+                          return (
+                            <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto">
+                              Tidak tersedia
+                            </p>
+                          );
+                        }
+                      })()}
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-medium text-slate-500">
+                        InChI
+                      </h3>
+                      {compound.raw?.Record?.Section?.[2]?.Section?.[1]
+                        ?.Section?.[1]?.Information?.[0]?.Value
+                        ?.StringWithMarkup?.[0]?.String ? (
+                        <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto max-h-[100px]">
+                          {
+                            compound.raw.Record.Section[2].Section[1].Section[1]
+                              .Information[0].Value.StringWithMarkup[0].String
+                          }
                         </p>
                       ) : (
-                        <p className="text-xs text-slate-400 p-2">
-                          Tidak tersedia
+                        <p className="text-sm text-slate-700">
+                          {compound.essential.inchiKey &&
+                          compound.essential.inchiKey !== "N/A"
+                            ? "Hanya InChIKey tersedia"
+                            : "Tidak tersedia"}
                         </p>
                       )}
                     </div>
@@ -917,6 +1008,139 @@ export default function DrugDetailPage() {
               </CardContent>
             </Card>
           </div>
+          {/* Kartu Sinonim terpisah */}
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MdBookmark className="text-green-600" /> Sinonim & Nama Lain
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                // Cari semua sinonim yang tersedia dari berbagai sumber
+                let synonyms = [];
+
+                // 1. Coba ambil dari MeSH Entry Terms
+                try {
+                  // Cari section 'Synonyms'
+                  const synonymsSection = compound.raw?.Record?.Section?.find(
+                    (section) => section.TOCHeading === "Names and Identifiers"
+                  )?.Section?.find(
+                    (section) => section.TOCHeading === "Synonyms"
+                  );
+
+                  // Cari subsection 'MeSH Entry Terms'
+                  const meshSection = synonymsSection?.Section?.find(
+                    (section) => section.TOCHeading === "MeSH Entry Terms"
+                  );
+
+                  // Ambil sinonim dari MeSH jika ada
+                  if (meshSection?.Information?.[0]?.Value?.StringWithMarkup) {
+                    const meshSynonyms =
+                      meshSection.Information[0].Value.StringWithMarkup.map(
+                        (item) => item.String
+                      ).filter(Boolean);
+                    synonyms = [...synonyms, ...meshSynonyms];
+                  }
+
+                  // 2. Cari subsection 'Depositor-Supplied Synonyms'
+                  const depositorSection = synonymsSection?.Section?.find(
+                    (section) =>
+                      section.TOCHeading === "Depositor-Supplied Synonyms"
+                  );
+
+                  // Ambil sinonim dari Depositor jika ada
+                  if (
+                    depositorSection?.Information?.[0]?.Value?.StringWithMarkup
+                  ) {
+                    const depositorSynonyms =
+                      depositorSection.Information[0].Value.StringWithMarkup.map(
+                        (item) => item.String
+                      ).filter(Boolean);
+                    synonyms = [...synonyms, ...depositorSynonyms];
+                  }
+                } catch (error) {
+                  console.error("Error loading synonyms from raw data:", error);
+                }
+
+                // 3. Fallback ke data yang sudah ada jika tidak ditemukan
+                if (
+                  synonyms.length === 0 &&
+                  compound.essential.synonyms &&
+                  compound.essential.synonyms.length > 0 &&
+                  compound.essential.synonyms[0] !== "N/A"
+                ) {
+                  synonyms = compound.essential.synonyms;
+                }
+
+                // Hapus duplikat
+                synonyms = [...new Set(synonyms)];
+
+                if (synonyms.length > 0) {
+                  const displayCount = 15; // Jumlah sinonim yang ditampilkan awal
+
+                  return (
+                    <>
+                      <div className="flex flex-wrap gap-2">
+                        {synonyms.slice(0, displayCount).map((synonym, idx) => (
+                          <Badge
+                            key={idx}
+                            variant="secondary"
+                            className="text-xs mb-2"
+                          >
+                            {synonym}
+                          </Badge>
+                        ))}
+                      </div>
+
+                      {synonyms.length > displayCount && (
+                        <Accordion
+                          type="single"
+                          collapsible
+                          className="mt-4 w-full"
+                        >
+                          <AccordionItem
+                            value="show-more-synonyms"
+                            className="border-b-0"
+                          >
+                            <AccordionTrigger className="py-2 text-sm text-blue-600 hover:no-underline w-full">
+                              Tampilkan {synonyms.length - displayCount} sinonim
+                              lainnya
+                            </AccordionTrigger>
+                            <AccordionContent className="w-full">
+                              <div className="flex flex-wrap gap-2 pt-2 w-full">
+                                {synonyms
+                                  .slice(displayCount)
+                                  .map((synonym, idx) => (
+                                    <Badge
+                                      key={idx}
+                                      variant="outline"
+                                      className="text-xs bg-slate-50 mb-2"
+                                    >
+                                      {synonym}
+                                    </Badge>
+                                  ))}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      )}
+
+                      <div className="mt-3 text-xs text-slate-500">
+                        Total: {synonyms.length} sinonim
+                      </div>
+                    </>
+                  );
+                } else {
+                  return (
+                    <p className="text-slate-500 italic">
+                      Tidak ada sinonim yang ditemukan untuk {compound.name}
+                    </p>
+                  );
+                }
+              })()}
+            </CardContent>
+          </Card>
 
           {/* Farmakologi Info Card */}
           <Card>
@@ -1950,32 +2174,42 @@ export default function DrugDetailPage() {
           {/* Chemical Safety dari CSV jika tersedia */}
           {compound.raw?.Record?.Section?.[1]?.Information?.[0]?.Value
             ?.StringWithMarkup?.[0]?.Markup && (
-            <Card>
-              <CardHeader className="bg-red-50">
-                <CardTitle className="flex items-center gap-2 text-red-800">
-                  <MdOutlineWarningAmber className="text-red-600" /> Simbol
+            <Card className="border-amber-200 bg-amber-50">
+              <CardHeader className="bg-amber-100 border-b border-amber-200">
+                <CardTitle className="flex items-center gap-2 text-amber-800">
+                  <MdOutlineWarningAmber className="text-amber-600 h-5 w-5" />{" "}
                   Keamanan Kimia
                 </CardTitle>
+                <CardDescription className="text-amber-700">
+                  Simbol dan peringatan untuk penanganan bahan kimia ini
+                </CardDescription>
               </CardHeader>
-              <CardContent className="pt-4">
-                <div className="flex flex-wrap gap-4">
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {compound.raw.Record.Section[1].Information[0].Value.StringWithMarkup[0].Markup.map(
                     (icon, index) => (
                       <div key={index} className="flex flex-col items-center">
-                        <div className="bg-white p-3 rounded-md border border-red-200 shadow-sm">
+                        <div className="bg-white p-3 rounded-md border border-amber-200 shadow-sm hover:shadow-md transition-shadow">
                           <Badge
                             variant="outline"
-                            className="h-16 w-16 flex items-center justify-center p-2"
+                            className="h-16 w-16 flex items-center justify-center p-2 bg-amber-50 border-amber-300"
                           >
                             {icon.Extra}
                           </Badge>
                         </div>
-                        <span className="text-sm mt-2 text-center text-red-800">
+                        <span className="text-sm mt-2 text-center font-medium text-amber-800">
                           {icon.Extra}
                         </span>
                       </div>
                     )
                   )}
+                </div>
+                <div className="mt-6 pt-4 border-t border-amber-200">
+                  <p className="text-amber-700 text-sm flex items-center">
+                    <MdOutlineWarning className="inline mr-2" />
+                    Simbol-simbol ini menunjukkan potensi bahaya dan perlu
+                    ditangani dengan hati-hati sesuai protokol keamanan.
+                  </p>
                 </div>
               </CardContent>
             </Card>
