@@ -985,6 +985,54 @@ function renderFullContent(compound) {
           </span>
         </div>
       </div>
+
+      {/* Deprecated CAS Numbers dan referensi tambahan */}
+      <div className="border-t pt-4 mt-6">
+        {compound.raw?.Record?.Section?.[2]?.Section?.[3]?.Section?.some(
+          (section) => section.TOCHeading === "Deprecated CAS"
+        ) && (
+          <div className="mb-4">
+            <h3 className="text-sm font-medium text-slate-700">
+              Nomor CAS yang Sudah Tidak Digunakan
+            </h3>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {compound.raw?.Record?.Section?.[2]?.Section?.[3]?.Section?.find(
+                (section) => section.TOCHeading === "Deprecated CAS"
+              )?.Information?.[0]?.Value?.StringWithMarkup?.map((item, idx) => (
+                <Badge
+                  key={idx}
+                  variant="outline"
+                  className="text-xs bg-slate-50"
+                >
+                  {item.String}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mb-4">
+          <h3 className="text-sm font-medium text-slate-700 mb-2">
+            Referensi Ilmiah Tambahan
+          </h3>
+          <div className="grid gap-2 text-sm">
+            {compound.raw?.Record?.Reference?.map((ref, idx) => (
+              <div
+                key={idx}
+                className="bg-slate-50 p-2 rounded-md flex justify-between"
+              >
+                <span>ANID: {ref.ANID}</span>
+                {ref.Name && (
+                  <span className="text-indigo-600">{ref.Name}</span>
+                )}
+                {ref.SourceName && (
+                  <span className="text-slate-500">{ref.SourceName}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2595,6 +2643,174 @@ export default function DrugDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Eksperimental Properties Lanjutan */}
+          {compound.raw?.Record?.Section?.[3]?.Section?.[1]?.Section?.[6]
+            ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MdOutlineScience className="text-indigo-600" /> Solubilitas
+                  Spesifik
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-700 whitespace-pre-line">
+                  {
+                    compound.raw.Record.Section[3].Section[1].Section[6]
+                      .Information[0].Value.StringWithMarkup[0].String
+                  }
+                </p>
+                {compound.raw?.Record?.Section?.[3]?.Section?.[1]?.Section?.[6]
+                  ?.Information?.[0]?.ReferenceNumber && (
+                  <div className="text-right mt-2">
+                    <Badge variant="outline" className="text-xs">
+                      Sumber #
+                      {
+                        compound.raw.Record.Section[3].Section[1].Section[6]
+                          .Information[0].ReferenceNumber
+                      }
+                    </Badge>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Sejarah & Regulasi */}
+          {(compound.raw?.Record?.Section?.[2]?.Section?.[5]?.Section?.[0]
+            ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String ||
+            compound.raw?.Record?.Section?.[10]?.Section?.[0]?.Information?.[0]
+              ?.Value?.DateISO) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MdLibraryBooks className="text-blue-600" /> Sejarah &
+                  Regulasi
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {compound.raw?.Record?.Section?.[2]?.Section?.[5]?.Section?.[0]
+                  ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String && (
+                  <div>
+                    <h3 className="text-sm font-medium text-slate-700 mb-1">
+                      Informasi Persetujuan FDA
+                    </h3>
+                    <p className="text-slate-700">
+                      {
+                        compound.raw.Record.Section[2].Section[5].Section[0]
+                          .Information[0].Value.StringWithMarkup[0].String
+                      }
+                    </p>
+                  </div>
+                )}
+                {compound.raw?.Record?.Section?.[10]?.Section?.[0]
+                  ?.Information?.[0]?.Value?.DateISO && (
+                  <div>
+                    <h3 className="text-sm font-medium text-slate-700 mb-1">
+                      Tanggal Penambahan ke Database
+                    </h3>
+                    <p className="text-slate-700">
+                      {new Date(
+                        compound.raw.Record.Section[10].Section[0].Information[0].Value.DateISO
+                      ).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Asal Natural */}
+          {compound.raw?.Record?.Section?.[2]?.Section?.[0]?.Information?.some(
+            (info) =>
+              info?.Value?.StringWithMarkup?.[0]?.String?.includes(
+                "reported in"
+              )
+          ) && (
+            <Card className="bg-emerald-50 border-emerald-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-emerald-800">
+                  <MdOutlineEco className="text-emerald-600" /> Asal Natural
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {compound.raw?.Record?.Section?.[2]?.Section?.[0]?.Information?.map(
+                  (info, idx) => {
+                    const content = info?.Value?.StringWithMarkup?.[0]?.String;
+                    if (content && content.includes("reported in")) {
+                      return (
+                        <div key={idx} className="mb-3">
+                          <p className="text-emerald-700">{content}</p>
+                          {info.ReferenceNumber && (
+                            <div className="text-right mt-1">
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-white"
+                              >
+                                Sumber #{info.ReferenceNumber}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Klasifikasi Obat Detail */}
+          {compound.raw?.Record?.Section?.[2]?.Section?.[0]?.Information?.some(
+            (info) =>
+              info?.Value?.StringWithMarkup?.[0]?.String?.includes(
+                "penicillin G derivative"
+              ) ||
+              info?.Value?.StringWithMarkup?.[0]?.String?.includes("antibiotic")
+          ) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MdOutlineMedication className="text-purple-600" />{" "}
+                  Klasifikasi Obat Detail
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {compound.raw?.Record?.Section?.[2]?.Section?.[0]?.Information?.map(
+                  (info, idx) => {
+                    const content = info?.Value?.StringWithMarkup?.[0]?.String;
+                    if (
+                      content &&
+                      (content.includes("penicillin G derivative") ||
+                        content.includes("antibiotic"))
+                    ) {
+                      return (
+                        <div
+                          key={idx}
+                          className="mb-3 pb-3 border-b border-slate-100 last:border-0"
+                        >
+                          <Badge variant="secondary" className="mb-2">
+                            Klasifikasi Antibiotik
+                          </Badge>
+                          <p className="text-slate-700">{content}</p>
+                          {info.ReferenceNumber && (
+                            <div className="text-right mt-1">
+                              <Badge variant="outline" className="text-xs">
+                                Sumber #{info.ReferenceNumber}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Chemistry Tab */}
@@ -2912,6 +3128,74 @@ export default function DrugDetailPage() {
             "Pharmacology and Biochemistry",
             "Mechanism of Action"
           )}
+
+          {/* Mekanisme Aksi Detail */}
+          {compound.raw?.Record?.Section?.[4]?.Section?.some(
+            (section) => section.TOCHeading === "Mechanism of Action"
+          ) && (
+            <Card className="border-green-200">
+              <CardHeader className="bg-green-50 border-b border-green-200">
+                <CardTitle className="flex items-center gap-2 text-green-800">
+                  <MdOutlineBiotech className="text-green-600" /> Mekanisme Aksi
+                  Detail
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {compound.raw?.Record?.Section?.[4]?.Section?.find(
+                  (section) => section.TOCHeading === "Mechanism of Action"
+                )?.Information?.map((info, idx) => (
+                  <div key={idx} className="mb-4">
+                    <p className="text-slate-700 whitespace-pre-line">
+                      {info?.Value?.StringWithMarkup?.[0]?.String}
+                    </p>
+                    {info.ReferenceNumber && (
+                      <div className="text-right mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          Sumber #{info.ReferenceNumber}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Clinical Information Detail */}
+          {compound.raw?.Record?.Section?.[9]?.Information?.some((info) =>
+            info?.Value?.StringWithMarkup?.[0]?.String?.includes("infections")
+          ) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Informasi Klinis Spesifik</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {compound.raw?.Record?.Section?.[9]?.Information?.map(
+                  (info, idx) => {
+                    const content = info?.Value?.StringWithMarkup?.[0]?.String;
+                    if (content && content.includes("infections")) {
+                      return (
+                        <div key={idx} className="mb-3">
+                          <h3 className="font-medium text-slate-700 mb-1">
+                            Infeksi yang dapat diobati
+                          </h3>
+                          <p className="text-slate-700">{content}</p>
+                          {info.ReferenceNumber && (
+                            <div className="text-right mt-1">
+                              <Badge variant="outline" className="text-xs">
+                                Sumber #{info.ReferenceNumber}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Safety Tab */}
@@ -3125,6 +3409,43 @@ export default function DrugDetailPage() {
                     ditangani dengan hati-hati sesuai protokol keamanan.
                   </p>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Panduan Keamanan Kimia Detail */}
+          {compound.raw?.Record?.Section?.[5]?.Section?.some(
+            (section) => section.TOCHeading === "Safety and Hazards"
+          ) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Panduan Keamanan Kimia Detail</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {compound.raw?.Record?.Section?.[5]?.Section?.find(
+                  (section) => section.TOCHeading === "Safety and Hazards"
+                )?.Section?.map((subsection, idx) => (
+                  <div
+                    key={idx}
+                    className="mb-4 pb-4 border-b border-slate-100 last:border-0"
+                  >
+                    <h3 className="font-medium text-slate-800 mb-2">
+                      {subsection.TOCHeading}
+                    </h3>
+                    {subsection.Information?.map((info, infoIdx) => (
+                      <div key={infoIdx} className="mb-2">
+                        {info.Name && (
+                          <h4 className="text-sm font-medium text-slate-600 mb-1">
+                            {info.Name}
+                          </h4>
+                        )}
+                        <p className="text-slate-700 whitespace-pre-line">
+                          {info?.Value?.StringWithMarkup?.[0]?.String}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </CardContent>
             </Card>
           )}
