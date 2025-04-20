@@ -50,6 +50,18 @@ function ChemistryTab({ compound, setImageDialogOpen }) {
     return value && value !== "N/A";
   };
 
+  // Coding state untuk menampilkan status kopian
+  const [copied, setCopied] = React.useState(null);
+
+  // Fungsi untuk menyalin yang menampilkan status
+  const copyWithFeedback = (text, identifier) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(identifier);
+      toast.success(`Berhasil disalin ke clipboard`);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -82,11 +94,11 @@ function ChemistryTab({ compound, setImageDialogOpen }) {
               </Button>
             </div>
 
-            {/* Tampilkan formula molekul */}
+            {/* Tampilkan formula molekul - menggunakan path yang sama dengan OverviewTab */}
             <div className="mt-4 space-y-2">
               <div className="font-medium text-slate-800">
                 {(() => {
-                  // Get Formula Molekul dari path yang benar
+                  // Get Formula Molekul dari path yang benar - SAMA dengan OverviewTab
                   const molecularFormulaSection =
                     compound.raw?.Record?.Section?.find(
                       (section) => section.TOCHeading === "Molecular Formula"
@@ -106,6 +118,14 @@ function ChemistryTab({ compound, setImageDialogOpen }) {
                     compound.essential.molecularFormula !== "N/A"
                   ) {
                     formula = compound.essential.molecularFormula;
+                  } else if (
+                    compound.raw?.Record?.Section?.[2]?.Section?.[2]
+                      ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String
+                  ) {
+                    // Path tambahan dari OverviewTab
+                    formula =
+                      compound.raw.Record.Section[2].Section[2].Information[0]
+                        .Value.StringWithMarkup[0].String;
                   }
 
                   if (formula) {
@@ -160,26 +180,49 @@ function ChemistryTab({ compound, setImageDialogOpen }) {
               Nama IUPAC
             </h3>
             <div className="font-medium break-words p-3 bg-slate-50 rounded-md border border-slate-100 relative">
-              {isValueAvailable(compound.essential.iupacName) ? (
-                <>
-                  {compound.essential.iupacName}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-2"
-                    onClick={() =>
-                      copyToClipboard(
-                        compound.essential.iupacName,
-                        "Nama IUPAC"
-                      )
-                    }
-                  >
-                    <MdOutlineContentCopy className="h-4 w-4" />
-                  </Button>
-                </>
-              ) : (
-                <span className="text-slate-400 italic">Tidak tersedia</span>
-              )}
+              {(() => {
+                // Gunakan path yang sama dengan OverviewTab untuk IUPAC name
+                const iupacNameSection =
+                  compound.raw?.Record?.Section?.[2]?.Section?.[1]
+                    ?.Section?.[0];
+                let iupacName = null;
+
+                if (
+                  iupacNameSection?.Information?.[0]?.Value
+                    ?.StringWithMarkup?.[0]?.String
+                ) {
+                  iupacName =
+                    iupacNameSection.Information[0].Value.StringWithMarkup[0]
+                      .String;
+                } else if (
+                  compound.essential.iupacName &&
+                  compound.essential.iupacName !== "N/A"
+                ) {
+                  iupacName = compound.essential.iupacName;
+                }
+
+                if (iupacName) {
+                  return (
+                    <>
+                      {iupacName}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-2"
+                        onClick={() => copyToClipboard(iupacName, "Nama IUPAC")}
+                      >
+                        <MdOutlineContentCopy className="h-4 w-4" />
+                      </Button>
+                    </>
+                  );
+                } else {
+                  return (
+                    <span className="text-slate-400 italic">
+                      Tidak tersedia
+                    </span>
+                  );
+                }
+              })()}
             </div>
           </div>
 
@@ -205,27 +248,51 @@ function ChemistryTab({ compound, setImageDialogOpen }) {
                 </Tooltip>
               </TooltipProvider>
               <div className="relative">
-                {isValueAvailable(compound.essential.inchiKey) ? (
-                  <>
-                    <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto">
-                      {compound.essential.inchiKey}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-2 top-2"
-                      onClick={() =>
-                        copyToClipboard(compound.essential.inchiKey, "InChIKey")
-                      }
-                    >
-                      <MdOutlineContentCopy className="h-3.5 w-3.5" />
-                    </Button>
-                  </>
-                ) : (
-                  <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto text-slate-400 italic">
-                    Tidak tersedia
-                  </p>
-                )}
+                {(() => {
+                  // Gunakan path yang sama dengan OverviewTab untuk InChIKey
+                  const inchiKeySection =
+                    compound.raw?.Record?.Section?.[2]?.Section?.[1]
+                      ?.Section?.[2];
+                  let inchiKey = null;
+
+                  if (
+                    inchiKeySection?.Information?.[0]?.Value
+                      ?.StringWithMarkup?.[0]?.String
+                  ) {
+                    inchiKey =
+                      inchiKeySection.Information[0].Value.StringWithMarkup[0]
+                        .String;
+                  } else if (
+                    compound.essential.inchiKey &&
+                    compound.essential.inchiKey !== "N/A"
+                  ) {
+                    inchiKey = compound.essential.inchiKey;
+                  }
+
+                  if (inchiKey) {
+                    return (
+                      <>
+                        <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto">
+                          {inchiKey}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-2 top-2"
+                          onClick={() => copyToClipboard(inchiKey, "InChIKey")}
+                        >
+                          <MdOutlineContentCopy className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    );
+                  } else {
+                    return (
+                      <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto text-slate-400 italic">
+                        Tidak tersedia
+                      </p>
+                    );
+                  }
+                })()}
               </div>
             </div>
 
@@ -249,30 +316,51 @@ function ChemistryTab({ compound, setImageDialogOpen }) {
                 </Tooltip>
               </TooltipProvider>
               <div className="relative">
-                {isValueAvailable(compound.essential.canonicalSmiles) ? (
-                  <>
-                    <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto max-h-16">
-                      {compound.essential.canonicalSmiles}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-2 top-2"
-                      onClick={() =>
-                        copyToClipboard(
-                          compound.essential.canonicalSmiles,
-                          "SMILES"
-                        )
-                      }
-                    >
-                      <MdOutlineContentCopy className="h-3.5 w-3.5" />
-                    </Button>
-                  </>
-                ) : (
-                  <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto text-slate-400 italic">
-                    Tidak tersedia
-                  </p>
-                )}
+                {(() => {
+                  // Gunakan path yang sama dengan OverviewTab untuk SMILES
+                  const smilesSection =
+                    compound.raw?.Record?.Section?.[2]?.Section?.[1]
+                      ?.Section?.[3];
+                  let smiles = null;
+
+                  if (
+                    smilesSection?.Information?.[0]?.Value
+                      ?.StringWithMarkup?.[0]?.String
+                  ) {
+                    smiles =
+                      smilesSection.Information[0].Value.StringWithMarkup[0]
+                        .String;
+                  } else if (
+                    compound.essential.canonicalSmiles &&
+                    compound.essential.canonicalSmiles !== "N/A"
+                  ) {
+                    smiles = compound.essential.canonicalSmiles;
+                  }
+
+                  if (smiles) {
+                    return (
+                      <>
+                        <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto max-h-16">
+                          {smiles}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-2 top-2"
+                          onClick={() => copyToClipboard(smiles, "SMILES")}
+                        >
+                          <MdOutlineContentCopy className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    );
+                  } else {
+                    return (
+                      <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto text-slate-400 italic">
+                        Tidak tersedia
+                      </p>
+                    );
+                  }
+                })()}
               </div>
             </div>
           </div>
