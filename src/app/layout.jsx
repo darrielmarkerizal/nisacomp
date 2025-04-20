@@ -49,7 +49,7 @@ export const metadata = {
   description:
     "Referensi farmakologi lengkap dengan informasi obat, interaksi, kalkulator dosis, dan fitur farmasi profesional lainnya.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/25082024_9.jpg",
   },
 };
 
@@ -131,7 +131,7 @@ export default function RootLayout({ children }) {
                         <div className="rounded-md bg-indigo-100 p-2 mr-3 text-indigo-700">
                           <MdMedication className="h-5 w-5" />
                         </div>
-                        <span className="text-xl font-semibold">MedGuide</span>
+                        <span className="text-xl font-semibold">NisaCare</span>
                       </SheetTitle>
                     </div>
                     <nav className="flex flex-col px-2 py-4">
@@ -184,10 +184,10 @@ export default function RootLayout({ children }) {
                   </div>
                   <div className="flex">
                     <span className="text-lg font-semibold text-indigo-600">
-                      Med
+                      Nisa
                     </span>
                     <span className="text-lg font-semibold text-slate-700">
-                      Guide
+                      Care
                     </span>
                   </div>
                 </Link>
@@ -320,7 +320,7 @@ export default function RootLayout({ children }) {
                       className="rounded-full"
                     >
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src="/avatar-nisa.png" alt="Nisa" />
+                        <AvatarImage src="/avatar_nisa.png" alt="Nisa" />
                         <AvatarFallback className="bg-indigo-100 text-indigo-700">
                           NF
                         </AvatarFallback>
@@ -387,7 +387,7 @@ export default function RootLayout({ children }) {
                 Dibuat dengan ❤️ untuk Nisa Fredlina Mahardika Saputri
               </p>
               <p className="sm:hidden">Dibuat dengan ❤️ untuk Nisa</p>
-              <p className="mt-1">© {new Date().getFullYear()} MedGuide</p>
+              <p className="mt-1">© {new Date().getFullYear()} NisaCare</p>
             </div>
           </footer>
         </div>
