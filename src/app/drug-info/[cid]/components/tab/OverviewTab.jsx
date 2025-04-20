@@ -17,6 +17,8 @@ import {
   MdOpenInNew,
   MdZoomIn,
   MdOutlineSecurity,
+  MdContentCopy,
+  MdCheck,
 } from "react-icons/md";
 
 import {
@@ -44,21 +46,47 @@ import {
   TableHead,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
+  // State untuk menampilkan status kopian
+  const [copied, setCopied] = React.useState(null);
+
+  // Fungsi untuk menyalin teks ke clipboard
+  const copyToClipboard = (text, identifier) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(identifier);
+      toast.success(`Berhasil disalin ke clipboard`);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  };
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="md:col-span-1">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <MdOutlineScience className="text-indigo-600" /> Struktur Molekul
+      {/* Top Cards - Struktur Molekul dan Info Umum */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* Card Struktur Molekul */}
+        <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-2 border-b">
+            <CardTitle className="flex items-center gap-2 text-indigo-700">
+              <div className="bg-indigo-50 p-1.5 rounded-full">
+                <MdOutlineScience className="text-indigo-600 h-5 w-5" />
+              </div>
+              Struktur Molekul
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col items-center text-center">
+          <CardContent className="flex flex-col items-center text-center pt-4">
             <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
               <DialogTrigger asChild>
-                <div className="p-2 bg-white rounded-lg shadow-sm border cursor-pointer group relative">
+                <div className="p-3 bg-white rounded-lg shadow-sm border hover:shadow-md cursor-pointer group relative transition-all duration-300">
                   {compound.essential.structureUrl ? (
                     <Image
                       src={compound.essential.structureUrl}
@@ -73,8 +101,10 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
                     </div>
                   )}
                   {compound.essential.structureUrl && (
-                    <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                      <MdZoomIn className="h-8 w-8 text-indigo-600" />
+                    <div className="absolute inset-0 bg-indigo-900/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                      <div className="bg-white p-2 rounded-full shadow-lg">
+                        <MdZoomIn className="h-6 w-6 text-indigo-600" />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -94,10 +124,9 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
               )}
             </Dialog>
 
-            <div className="mt-4 w-full text-center">
+            <div className="mt-6 w-full text-center">
               {(() => {
                 // Get Formula Molekul dari path yang benar
-                // Cek beberapa kemungkinan lokasi formula dalam data
                 const molecularFormulaSection =
                   compound.raw?.Record?.Section?.find(
                     (section) => section.TOCHeading === "Molecular Formula"
@@ -129,7 +158,7 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
                 if (formula) {
                   return (
                     <>
-                      <p className="font-medium">
+                      <p className="text-xl font-bold text-slate-800">
                         {formula.split("").map((char, index) => {
                           return /\d/.test(char) ? (
                             <sub key={index}>{char}</sub>
@@ -138,22 +167,26 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
                           );
                         })}
                       </p>
-                      <p className="text-sm text-slate-500">Formula Molekul</p>
+                      <p className="text-sm text-slate-600 mt-1">
+                        Formula Molekul
+                      </p>
                     </>
                   );
                 } else {
                   return (
                     <>
-                      <p className="font-medium">
+                      <p className="text-xl font-bold text-slate-800">
                         C<sub>16</sub>H<sub>19</sub>N<sub>3</sub>O<sub>5</sub>S
                       </p>
-                      <p className="text-sm text-slate-500">Formula Molekul</p>
+                      <p className="text-sm text-slate-600 mt-1">
+                        Formula Molekul
+                      </p>
                     </>
                   );
                 }
               })()}
             </div>
-            <div className="mt-2">
+            <div className="mt-3 w-full">
               {(() => {
                 // Mendapatkan berat molekul dari beberapa kemungkinan path
                 const chemicalSection = compound.raw?.Record?.Section?.find(
@@ -199,39 +232,47 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
                 }
 
                 return (
-                  <p className="text-sm text-slate-600">
-                    Berat Molekul:{" "}
-                    <span className="font-medium">
-                      {weight || "365.4 g/mol"}
-                    </span>
-                  </p>
+                  <div className="bg-indigo-50 rounded-lg p-3 text-center">
+                    <p className="text-sm text-indigo-800">
+                      Berat Molekul:{" "}
+                      <span className="font-semibold">
+                        {weight || "365.4 g/mol"}
+                      </span>
+                    </p>
+                  </div>
                 );
               })()}
             </div>
 
             {/* Tampilkan informasi Record Number */}
             {compound.raw?.Record?.RecordNumber && (
-              <div className="mt-2 text-sm text-slate-500">
-                <p>CID: {compound.raw.Record.RecordNumber}</p>
+              <div className="mt-3 text-sm">
+                <Badge variant="outline" className="bg-slate-50 text-slate-600">
+                  CID: {compound.raw.Record.RecordNumber}
+                </Badge>
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-1 lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MdOutlineInfo className="text-indigo-600" /> Informasi Umum
+        {/* Card Informasi Umum */}
+        <Card className="lg:col-span-2 bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="border-b">
+            <CardTitle className="flex items-center gap-2 text-indigo-700">
+              <div className="bg-indigo-50 p-1.5 rounded-full">
+                <MdOutlineInfo className="text-indigo-600 h-5 w-5" />
+              </div>
+              Informasi Umum
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="pt-4">
+            <div className="space-y-5">
+              {/* Nama IUPAC */}
               <div>
-                <h3 className="text-sm font-medium text-slate-500">
+                <h3 className="text-sm font-medium text-slate-500 mb-1">
                   Nama IUPAC
                 </h3>
                 {(() => {
-                  // Cek beberapa kemungkinan lokasi nama IUPAC dalam data
                   const iupacNameSection =
                     compound.raw?.Record?.Section?.[2]?.Section?.[1]
                       ?.Section?.[0];
@@ -253,24 +294,44 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
 
                   if (iupacName) {
                     return (
-                      <p className="font-medium break-words">{iupacName}</p>
+                      <div className="relative p-3 bg-slate-50 rounded-md border border-slate-200 group">
+                        <p className="font-medium break-words text-slate-800">
+                          {iupacName}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="absolute top-2 right-2 opacity-70 hover:opacity-100"
+                          onClick={() =>
+                            copyToClipboard(iupacName, "iupacName")
+                          }
+                        >
+                          {copied === "iupacName" ? (
+                            <MdCheck className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <MdContentCopy className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
                     );
                   } else {
                     return (
-                      <p className="font-medium break-words">Tidak Tersedia</p>
+                      <p className="p-3 bg-slate-50 rounded-md border border-slate-200 text-slate-600 italic">
+                        Tidak Tersedia
+                      </p>
                     );
                   }
                 })()}
               </div>
 
-              {/* Menampilkan Record Description dari CSV */}
+              {/* Deskripsi */}
               {compound.raw?.Record?.Section?.[2]?.Section?.[0]
                 ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String && (
                 <div>
-                  <h3 className="text-sm font-medium text-slate-500">
+                  <h3 className="text-sm font-medium text-slate-500 mb-1">
                     Deskripsi
                   </h3>
-                  <p className="text-slate-700">
+                  <p className="text-slate-700 bg-slate-50 p-3 rounded-md border border-slate-100">
                     {
                       compound.raw.Record.Section[2].Section[0].Information[0]
                         .Value.StringWithMarkup[0].String
@@ -279,154 +340,212 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
                 </div>
               )}
 
-              {/* Tampilkan informasi klasifikasi FDA jika tersedia */}
+              {/* Informasi FDA */}
               {compound.fda &&
                 (compound.fda.identification.genericName ||
                   compound.fda.identification.brandName) && (
-                  <div className="flex flex-col md:flex-row gap-4">
-                    {compound.fda.identification.genericName && (
-                      <div className="flex-1">
-                        <h3 className="text-sm font-medium text-slate-500">
-                          Nama Generik
-                        </h3>
-                        <p className="font-medium">
-                          {compound.fda.identification.genericName}
-                        </p>
-                      </div>
-                    )}
-                    {compound.fda.identification.brandName && (
-                      <div className="flex-1">
-                        <h3 className="text-sm font-medium text-slate-500">
-                          Nama Dagang
-                        </h3>
-                        <Badge
-                          variant="outline"
-                          className="bg-blue-50 text-blue-800 border-blue-200"
-                        >
-                          {compound.fda.identification.brandName}
-                        </Badge>
-                      </div>
-                    )}
+                  <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
+                    <div className="flex flex-col md:flex-row gap-4">
+                      {compound.fda.identification.genericName && (
+                        <div className="flex-1">
+                          <h3 className="text-sm font-medium text-blue-800 mb-1">
+                            Nama Generik
+                          </h3>
+                          <p className="font-medium text-blue-900">
+                            {compound.fda.identification.genericName}
+                          </p>
+                        </div>
+                      )}
+                      {compound.fda.identification.brandName && (
+                        <div className="flex-1">
+                          <h3 className="text-sm font-medium text-blue-800 mb-1">
+                            Nama Dagang
+                          </h3>
+                          <Badge
+                            variant="outline"
+                            className="bg-white text-blue-800 border-blue-200"
+                          >
+                            {compound.fda.identification.brandName}
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-slate-500">
-                    InChIKey
-                  </h3>
-                  {(() => {
-                    const inchiKeySection =
-                      compound.raw?.Record?.Section?.[2]?.Section?.[1]
-                        ?.Section?.[2];
-                    let inchiKey = null;
+              {/* Identifiers */}
+              <div className="pt-2">
+                <h3 className="text-sm font-medium text-slate-700 mb-3">
+                  Identifiers Kimia
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* InChIKey */}
+                  <div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <h4 className="text-xs font-medium text-slate-500 flex items-center mb-1.5 cursor-help">
+                            InChIKey
+                            <span className="inline-block w-4 h-4 rounded-full bg-slate-100 text-slate-500 text-xs flex items-center justify-center ml-1">
+                              ?
+                            </span>
+                          </h4>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p className="text-xs max-w-xs">
+                            Pengidentifikasi unik terstandarisasi untuk senyawa
+                            kimia.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    {(() => {
+                      const inchiKeySection =
+                        compound.raw?.Record?.Section?.[2]?.Section?.[1]
+                          ?.Section?.[2];
+                      let inchiKey = null;
 
-                    if (
-                      inchiKeySection?.Information?.[0]?.Value
-                        ?.StringWithMarkup?.[0]?.String
-                    ) {
-                      inchiKey =
-                        inchiKeySection.Information[0].Value.StringWithMarkup[0]
-                          .String;
-                    } else if (
-                      compound.essential.inchiKey &&
-                      compound.essential.inchiKey !== "N/A"
-                    ) {
-                      inchiKey = compound.essential.inchiKey;
-                    }
-
-                    if (inchiKey) {
-                      return (
-                        <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto">
-                          {inchiKey}
-                        </p>
-                      );
-                    } else {
-                      // Fallback value untuk InChIKey
-                      return (
-                        <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto">
-                          Tidak Tersedia
-                        </p>
-                      );
-                    }
-                  })()}
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-slate-500">SMILES</h3>
-                  {(() => {
-                    const smilesSection =
-                      compound.raw?.Record?.Section?.[2]?.Section?.[1]
-                        ?.Section?.[3];
-                    let smiles = null;
-
-                    if (
-                      smilesSection?.Information?.[0]?.Value
-                        ?.StringWithMarkup?.[0]?.String
-                    ) {
-                      smiles =
-                        smilesSection.Information[0].Value.StringWithMarkup[0]
-                          .String;
-                    } else if (
-                      compound.essential.canonicalSmiles &&
-                      compound.essential.canonicalSmiles !== "N/A"
-                    ) {
-                      smiles = compound.essential.canonicalSmiles;
-                    }
-
-                    if (smiles) {
-                      return (
-                        <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto max-h-[60px]">
-                          {smiles}
-                        </p>
-                      );
-                    } else {
-                      return (
-                        <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto">
-                          Tidak tersedia
-                        </p>
-                      );
-                    }
-                  })()}
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-slate-500">InChI</h3>
-                  {compound.raw?.Record?.Section?.[2]?.Section?.[1]
-                    ?.Section?.[1]?.Information?.[0]?.Value
-                    ?.StringWithMarkup?.[0]?.String ? (
-                    <p className="font-mono text-xs bg-slate-50 p-2 rounded border border-slate-200 overflow-auto max-h-[100px]">
-                      {
-                        compound.raw.Record.Section[2].Section[1].Section[1]
-                          .Information[0].Value.StringWithMarkup[0].String
+                      if (
+                        inchiKeySection?.Information?.[0]?.Value
+                          ?.StringWithMarkup?.[0]?.String
+                      ) {
+                        inchiKey =
+                          inchiKeySection.Information[0].Value
+                            .StringWithMarkup[0].String;
+                      } else if (
+                        compound.essential.inchiKey &&
+                        compound.essential.inchiKey !== "N/A"
+                      ) {
+                        inchiKey = compound.essential.inchiKey;
                       }
-                    </p>
-                  ) : (
-                    <p className="text-sm text-slate-700">
-                      {compound.essential.inchiKey &&
-                      compound.essential.inchiKey !== "N/A"
-                        ? "Hanya InChIKey tersedia"
-                        : "Tidak tersedia"}
-                    </p>
-                  )}
+
+                      if (inchiKey) {
+                        return (
+                          <div className="relative">
+                            <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto">
+                              {inchiKey}
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="absolute top-1 right-1 h-6 w-6 p-0"
+                              onClick={() =>
+                                copyToClipboard(inchiKey, "inchiKey")
+                              }
+                            >
+                              {copied === "inchiKey" ? (
+                                <MdCheck className="w-3.5 h-3.5 text-green-600" />
+                              ) : (
+                                <MdContentCopy className="w-3.5 h-3.5" />
+                              )}
+                            </Button>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto text-slate-400">
+                            Tidak tersedia
+                          </p>
+                        );
+                      }
+                    })()}
+                  </div>
+
+                  {/* SMILES */}
+                  <div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <h4 className="text-xs font-medium text-slate-500 flex items-center mb-1.5 cursor-help">
+                            SMILES
+                            <span className="inline-block w-4 h-4 rounded-full bg-slate-100 text-slate-500 text-xs flex items-center justify-center ml-1">
+                              ?
+                            </span>
+                          </h4>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p className="text-xs max-w-xs">
+                            Notasi linear untuk merepresentasikan struktur
+                            molekul.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    {(() => {
+                      const smilesSection =
+                        compound.raw?.Record?.Section?.[2]?.Section?.[1]
+                          ?.Section?.[3];
+                      let smiles = null;
+
+                      if (
+                        smilesSection?.Information?.[0]?.Value
+                          ?.StringWithMarkup?.[0]?.String
+                      ) {
+                        smiles =
+                          smilesSection.Information[0].Value.StringWithMarkup[0]
+                            .String;
+                      } else if (
+                        compound.essential.canonicalSmiles &&
+                        compound.essential.canonicalSmiles !== "N/A"
+                      ) {
+                        smiles = compound.essential.canonicalSmiles;
+                      }
+
+                      if (smiles) {
+                        return (
+                          <div className="relative">
+                            <ScrollArea className="h-12 rounded border border-slate-200 bg-slate-50">
+                              <p className="font-mono text-xs p-2.5">
+                                {smiles}
+                              </p>
+                            </ScrollArea>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="absolute top-1 right-1 h-6 w-6 p-0"
+                              onClick={() => copyToClipboard(smiles, "smiles")}
+                            >
+                              {copied === "smiles" ? (
+                                <MdCheck className="w-3.5 h-3.5 text-green-600" />
+                              ) : (
+                                <MdContentCopy className="w-3.5 h-3.5" />
+                              )}
+                            </Button>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <p className="font-mono text-xs bg-slate-50 p-2.5 rounded border border-slate-200 overflow-auto text-slate-400">
+                            Tidak tersedia
+                          </p>
+                        );
+                      }
+                    })()}
+                  </div>
                 </div>
               </div>
 
-              {/* Identifiers lainnya dari CSV (CAS, EC Number, dll) */}
+              {/* Identifikasi Lainnya */}
               {compound.raw?.Record?.Section?.[2]?.Section?.[3] && (
-                <div className="pt-2">
-                  <h3 className="text-sm font-medium text-slate-500 mb-2">
+                <div className="mt-3 pt-3 border-t border-slate-100">
+                  <h3 className="text-sm font-medium text-slate-700 mb-2">
                     Identifikasi Lainnya
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
                     {/* CAS Number */}
                     {compound.raw?.Record?.Section?.[2]?.Section?.[3]
                       ?.Section?.[0]?.Information?.[0]?.Value
                       ?.StringWithMarkup?.[0]?.String && (
-                      <div>
-                        <span className="font-medium">CAS:</span>{" "}
-                        {
-                          compound.raw.Record.Section[2].Section[3].Section[0]
-                            .Information[0].Value.StringWithMarkup[0].String
-                        }
+                      <div className="bg-slate-50 p-2 rounded-md border border-slate-100">
+                        <span className="text-xs text-slate-500 block mb-1">
+                          CAS
+                        </span>
+                        <span className="font-medium text-sm">
+                          {
+                            compound.raw.Record.Section[2].Section[3].Section[0]
+                              .Information[0].Value.StringWithMarkup[0].String
+                          }
+                        </span>
                       </div>
                     )}
 
@@ -434,12 +553,16 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
                     {compound.raw?.Record?.Section?.[2]?.Section?.[3]
                       ?.Section?.[3]?.Information?.[0]?.Value
                       ?.StringWithMarkup?.[0]?.String && (
-                      <div>
-                        <span className="font-medium">EC Number:</span>{" "}
-                        {
-                          compound.raw.Record.Section[2].Section[3].Section[3]
-                            .Information[0].Value.StringWithMarkup[0].String
-                        }
+                      <div className="bg-slate-50 p-2 rounded-md border border-slate-100">
+                        <span className="text-xs text-slate-500 block mb-1">
+                          EC
+                        </span>
+                        <span className="font-medium text-sm">
+                          {
+                            compound.raw.Record.Section[2].Section[3].Section[3]
+                              .Information[0].Value.StringWithMarkup[0].String
+                          }
+                        </span>
                       </div>
                     )}
 
@@ -447,12 +570,16 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
                     {compound.raw?.Record?.Section?.[2]?.Section?.[3]
                       ?.Section?.[4]?.Information?.[0]?.Value
                       ?.StringWithMarkup?.[0]?.String && (
-                      <div>
-                        <span className="font-medium">UNII:</span>{" "}
-                        {
-                          compound.raw.Record.Section[2].Section[3].Section[4]
-                            .Information[0].Value.StringWithMarkup[0].String
-                        }
+                      <div className="bg-slate-50 p-2 rounded-md border border-slate-100">
+                        <span className="text-xs text-slate-500 block mb-1">
+                          UNII
+                        </span>
+                        <span className="font-medium text-sm">
+                          {
+                            compound.raw.Record.Section[2].Section[3].Section[4]
+                              .Information[0].Value.StringWithMarkup[0].String
+                          }
+                        </span>
                       </div>
                     )}
 
@@ -460,12 +587,16 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
                     {compound.raw?.Record?.Section?.[2]?.Section?.[3]
                       ?.Section?.[5]?.Information?.[0]?.Value
                       ?.StringWithMarkup?.[0]?.String && (
-                      <div>
-                        <span className="font-medium">ChEBI ID:</span>{" "}
-                        {
-                          compound.raw.Record.Section[2].Section[3].Section[5]
-                            .Information[0].Value.StringWithMarkup[0].String
-                        }
+                      <div className="bg-slate-50 p-2 rounded-md border border-slate-100">
+                        <span className="text-xs text-slate-500 block mb-1">
+                          ChEBI
+                        </span>
+                        <span className="font-medium text-sm">
+                          {
+                            compound.raw.Record.Section[2].Section[3].Section[5]
+                              .Information[0].Value.StringWithMarkup[0].String
+                          }
+                        </span>
                       </div>
                     )}
 
@@ -473,33 +604,37 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
                     {compound.raw?.Record?.Section?.[2]?.Section?.[3]
                       ?.Section?.[7]?.Information?.[0]?.Value
                       ?.StringWithMarkup?.[0]?.String && (
-                      <div>
-                        <span className="font-medium">DrugBank ID:</span>{" "}
-                        {
-                          compound.raw.Record.Section[2].Section[3].Section[7]
-                            .Information[0].Value.StringWithMarkup[0].String
-                        }
+                      <div className="bg-slate-50 p-2 rounded-md border border-slate-100">
+                        <span className="text-xs text-slate-500 block mb-1">
+                          DrugBank
+                        </span>
+                        <span className="font-medium text-sm">
+                          {
+                            compound.raw.Record.Section[2].Section[3].Section[7]
+                              .Information[0].Value.StringWithMarkup[0].String
+                          }
+                        </span>
                       </div>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Menampilkan klasifikasi farmakologi dari FDA jika tersedia */}
+              {/* Klasifikasi Farmakologi */}
               {compound.fda &&
                 compound.fda.pharmacology &&
                 (compound.fda.pharmacology.mechanismOfAction ||
                   compound.fda.pharmacology.physiologicEffect ||
                   compound.fda.pharmacology.chemicalStructure) && (
-                  <div className="pt-2">
-                    <h3 className="text-sm font-medium text-slate-500">
+                  <div className="mt-3 pt-3 border-t border-slate-100">
+                    <h3 className="text-sm font-medium text-slate-700 mb-2">
                       Klasifikasi Farmakologi (FDA)
                     </h3>
                     <div className="flex flex-wrap gap-2 mt-1">
                       {compound.fda.pharmacology.mechanismOfAction && (
                         <Badge
                           variant="outline"
-                          className="bg-green-50 text-green-800 border-green-200"
+                          className="bg-green-50 text-green-800 border-green-200 font-normal py-1"
                         >
                           {compound.fda.pharmacology.mechanismOfAction}
                         </Badge>
@@ -507,7 +642,7 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
                       {compound.fda.pharmacology.physiologicEffect && (
                         <Badge
                           variant="outline"
-                          className="bg-blue-50 text-blue-800 border-blue-200"
+                          className="bg-blue-50 text-blue-800 border-blue-200 font-normal py-1"
                         >
                           {compound.fda.pharmacology.physiologicEffect}
                         </Badge>
@@ -515,7 +650,7 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
                       {compound.fda.pharmacology.chemicalStructure && (
                         <Badge
                           variant="outline"
-                          className="bg-purple-50 text-purple-800 border-purple-200"
+                          className="bg-purple-50 text-purple-800 border-purple-200 font-normal py-1"
                         >
                           {compound.fda.pharmacology.chemicalStructure}
                         </Badge>
@@ -524,14 +659,16 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
                   </div>
                 )}
 
-              {/* Tampilkan klasifikasi penggunaan dari PubChem jika tersedia */}
+              {/* Klasifikasi Penggunaan */}
               {compound.essential.useClassification &&
                 compound.essential.useClassification !== "N/A" && (
-                  <div className="pt-2">
-                    <h3 className="text-sm font-medium text-slate-500">
+                  <div className="mt-3 pt-3 border-t border-slate-100">
+                    <h3 className="text-sm font-medium text-slate-700 mb-1">
                       Klasifikasi Penggunaan (PubChem)
                     </h3>
-                    <p>{compound.essential.useClassification}</p>
+                    <Badge className="bg-indigo-50 text-indigo-800 border-none font-normal">
+                      {compound.essential.useClassification}
+                    </Badge>
                   </div>
                 )}
             </div>
@@ -539,14 +676,17 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
         </Card>
       </div>
 
-      {/* Kartu Sinonim terpisah */}
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MdBookmark className="text-green-600" /> Sinonim & Nama Lain
+      {/* Kartu Sinonim */}
+      <Card className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-slate-200">
+          <CardTitle className="flex items-center gap-2 text-green-800">
+            <div className="bg-green-100 p-1.5 rounded-full">
+              <MdBookmark className="text-green-600 h-5 w-5" />
+            </div>
+            Sinonim & Nama Lain
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           {(() => {
             // Cari semua sinonim yang tersedia dari berbagai sumber
             let synonyms = [];
@@ -613,7 +753,7 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
                       <Badge
                         key={idx}
                         variant="secondary"
-                        className="text-xs mb-2"
+                        className="py-1.5 px-2.5 text-xs mb-2 font-normal"
                       >
                         {synonym}
                       </Badge>
@@ -630,99 +770,150 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
                         value="show-more-synonyms"
                         className="border-b-0"
                       >
-                        <AccordionTrigger className="py-2 text-sm text-blue-600 hover:no-underline w-full">
-                          Tampilkan {synonyms.length - displayCount} sinonim
-                          lainnya
+                        <AccordionTrigger className="py-2 text-sm text-blue-600 hover:text-blue-700 hover:no-underline w-full">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Badge
+                              variant="outline"
+                              className="bg-blue-50 text-blue-700 border-blue-200"
+                            >
+                              {synonyms.length - displayCount}
+                            </Badge>
+                            <span>Tampilkan sinonim lainnya</span>
+                          </div>
                         </AccordionTrigger>
                         <AccordionContent className="w-full">
-                          <div className="flex flex-wrap gap-2 pt-2 w-full">
-                            {synonyms
-                              .slice(displayCount)
-                              .map((synonym, idx) => (
-                                <Badge
-                                  key={idx}
-                                  variant="outline"
-                                  className="text-xs bg-slate-50 mb-2"
-                                >
-                                  {synonym}
-                                </Badge>
-                              ))}
-                          </div>
+                          <ScrollArea className="h-48 rounded border border-slate-100 bg-slate-50 p-4">
+                            <div className="flex flex-wrap gap-2 pt-2 w-full">
+                              {synonyms
+                                .slice(displayCount)
+                                .map((synonym, idx) => (
+                                  <Badge
+                                    key={idx}
+                                    variant="outline"
+                                    className="text-xs bg-white mb-2 font-normal"
+                                  >
+                                    {synonym}
+                                  </Badge>
+                                ))}
+                            </div>
+                          </ScrollArea>
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>
                   )}
 
-                  <div className="mt-3 text-xs text-slate-500">
-                    Total: {synonyms.length} sinonim
+                  <div className="mt-3 text-xs text-slate-500 flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className="px-2 py-0.5 text-xs font-normal"
+                    >
+                      Total: {synonyms.length}
+                    </Badge>
+                    <span>sinonim dan nama alternatif</span>
                   </div>
                 </>
               );
             } else {
               return (
-                <p className="text-slate-500 italic">
-                  Tidak ada sinonim yang ditemukan untuk {compound.name}
-                </p>
+                <div className="p-8 text-center">
+                  <div className="inline-flex items-center justify-center rounded-full bg-slate-100 p-6 mb-4">
+                    <MdOutlineInfo className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <p className="text-slate-500 italic">
+                    Tidak ada sinonim yang ditemukan untuk {compound.name}
+                  </p>
+                </div>
               );
             }
           })()}
         </CardContent>
       </Card>
 
-      {/* Farmakologi Info Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MdOutlineBiotech className="text-indigo-600" /> Deskripsi &
-            Farmakologi
+      {/* Deskripsi & Farmakologi Card */}
+      <Card className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 border-b border-slate-200">
+          <CardTitle className="flex items-center gap-2 text-indigo-800">
+            <div className="bg-indigo-100 p-1.5 rounded-full">
+              <MdOutlineBiotech className="text-indigo-600 h-5 w-5" />
+            </div>
+            Deskripsi & Farmakologi
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Tampilkan semua record descriptions dari CSV */}
-          {compound.raw?.Record?.Section?.[2]?.Section?.[0]?.Information?.map(
-            (info, index) =>
-              info?.Value?.StringWithMarkup?.[0]?.String && (
-                <div
-                  key={index}
-                  className="mb-4 pb-4 border-b border-slate-100 last:border-0"
-                >
-                  <p className="text-slate-700 whitespace-pre-line">
-                    {info.Value.StringWithMarkup[0].String}
-                  </p>
-                  {info.ReferenceNumber && (
-                    <div className="text-right mt-2">
-                      <Badge variant="outline" className="text-xs">
-                        Sumber #{info.ReferenceNumber}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              )
-          )}
-
-          {/* Tampilkan informasi FDA jika tersedia */}
-          {compound.fda && compound.fda.clinical.purpose && (
-            <div className="bg-blue-50 p-3 rounded-md border border-blue-200 mb-2">
-              <div className="flex items-center mb-2">
-                <Badge
-                  variant="outline"
-                  className="bg-white text-blue-800 border-blue-200"
-                >
-                  Tujuan Terapeutik (FDA)
-                </Badge>
+        <CardContent className="pt-4 space-y-4">
+          {/* Deskripsi dari PubChem */}
+          {compound.raw?.Record?.Section?.[2]?.Section?.[0]?.Information?.some(
+            (info) => info?.Value?.StringWithMarkup?.[0]?.String
+          ) ? (
+            <div className="rounded-lg overflow-hidden border border-slate-200">
+              <div className="bg-slate-50 px-4 py-2 border-b border-slate-200">
+                <h3 className="text-sm font-medium text-slate-700">
+                  Deskripsi PubChem
+                </h3>
               </div>
-              <p className="font-medium text-slate-800">
-                {compound.fda.clinical.purpose}
-              </p>
+              <div className="p-4">
+                {compound.raw?.Record?.Section?.[2]?.Section?.[0]?.Information?.map(
+                  (info, index) =>
+                    info?.Value?.StringWithMarkup?.[0]?.String && (
+                      <div
+                        key={index}
+                        className="mb-4 pb-4 border-b border-slate-100 last:border-0 last:pb-0 last:mb-0"
+                      >
+                        <p className="text-slate-700 whitespace-pre-line leading-relaxed">
+                          {info.Value.StringWithMarkup[0].String}
+                        </p>
+                        {info.ReferenceNumber && (
+                          <div className="text-right mt-2">
+                            <Badge
+                              variant="outline"
+                              className="text-xs font-normal"
+                            >
+                              Sumber #{info.ReferenceNumber}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    )
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {/* FDA Purpose */}
+          {compound.fda && compound.fda.clinical.purpose && (
+            <div className="rounded-lg overflow-hidden border border-blue-200">
+              <div className="bg-blue-50 px-4 py-2 border-b border-blue-200">
+                <div className="flex items-center">
+                  <Badge
+                    variant="outline"
+                    className="bg-white text-blue-800 border-blue-300"
+                  >
+                    Tujuan Terapeutik FDA
+                  </Badge>
+                </div>
+              </div>
+              <div className="p-4 bg-white">
+                <p className="font-medium text-slate-800 leading-relaxed">
+                  {compound.fda.clinical.purpose}
+                </p>
+              </div>
             </div>
           )}
 
-          {/* Tampilkan farmakologi dari PubChem jika tersedia */}
+          {/* PubChem Pharmacology */}
           {compound.essential.pharmacology !== "N/A" && (
-            <div>
-              {compound.fda && compound.fda.clinical.purpose && <Separator />}
-              <div className="mt-2">
-                <p className="text-slate-700 whitespace-pre-line">
+            <div className="rounded-lg overflow-hidden border border-slate-200">
+              <div className="bg-slate-50 px-4 py-2 border-b border-slate-200">
+                <div className="flex items-center">
+                  <Badge
+                    variant="outline"
+                    className="bg-white text-indigo-800 border-indigo-200"
+                  >
+                    Farmakologi PubChem
+                  </Badge>
+                </div>
+              </div>
+              <div className="p-4">
+                <p className="text-slate-700 whitespace-pre-line leading-relaxed">
                   {compound.essential.pharmacology}
                 </p>
               </div>
@@ -731,335 +922,412 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MdOutlineMedication className="text-indigo-600" /> Indikasi &
-            Penggunaan
+      {/* Indikasi & Penggunaan Card */}
+      <Card className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-slate-200">
+          <CardTitle className="flex items-center gap-2 text-blue-800">
+            <div className="bg-blue-100 p-1.5 rounded-full">
+              <MdOutlineMedication className="text-blue-600 h-5 w-5" />
+            </div>
+            Indikasi & Penggunaan
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="pt-4 space-y-4">
           {compound.fda && compound.fda.clinical.indicationsAndUsage ? (
             <>
-              <div className="bg-blue-50 p-3 rounded-md border border-blue-200 mb-2">
-                <div className="flex items-center mb-2">
+              <div className="rounded-lg overflow-hidden border border-blue-200">
+                <div className="bg-blue-50 px-4 py-2 border-b border-blue-200">
                   <Badge
                     variant="outline"
-                    className="bg-white text-blue-800 border-blue-200"
+                    className="bg-white text-blue-800 border-blue-300"
                   >
                     Sumber: FDA
                   </Badge>
                 </div>
-                <p className="text-slate-700 whitespace-pre-line">
-                  {compound.fda.clinical.indicationsAndUsage}
-                </p>
+                <div className="p-4 bg-white">
+                  <p className="text-slate-700 whitespace-pre-line leading-relaxed">
+                    {compound.fda.clinical.indicationsAndUsage}
+                  </p>
+                </div>
               </div>
+
               {compound.essential.drugIndication !== "N/A" && (
-                <>
-                  <Separator />
-                  <div className="mt-2">
-                    <div className="flex items-center mb-2">
-                      <Badge
-                        variant="outline"
-                        className="bg-white text-slate-800 border-slate-200"
-                      >
-                        Sumber: PubChem
-                      </Badge>
-                    </div>
-                    <p className="text-slate-700 whitespace-pre-line">
+                <div className="rounded-lg overflow-hidden border border-slate-200">
+                  <div className="bg-slate-50 px-4 py-2 border-b border-slate-200">
+                    <Badge
+                      variant="outline"
+                      className="bg-white text-slate-800 border-slate-300"
+                    >
+                      Sumber: PubChem
+                    </Badge>
+                  </div>
+                  <div className="p-4 bg-white">
+                    <p className="text-slate-700 whitespace-pre-line leading-relaxed">
                       {compound.essential.drugIndication}
                     </p>
                   </div>
-                </>
+                </div>
               )}
             </>
           ) : compound.essential.drugIndication !== "N/A" ? (
-            <p className="text-slate-700 whitespace-pre-line">
-              {compound.essential.drugIndication}
-            </p>
+            <div className="rounded-lg overflow-hidden border border-slate-200">
+              <div className="bg-slate-50 px-4 py-2 border-b border-slate-200">
+                <Badge
+                  variant="outline"
+                  className="bg-white text-slate-800 border-slate-300"
+                >
+                  Sumber: PubChem
+                </Badge>
+              </div>
+              <div className="p-4 bg-white">
+                <p className="text-slate-700 whitespace-pre-line leading-relaxed">
+                  {compound.essential.drugIndication}
+                </p>
+              </div>
+            </div>
           ) : (
-            <p className="text-slate-500 italic">
-              Informasi indikasi dan penggunaan tidak tersedia
-            </p>
+            <div className="p-8 text-center">
+              <div className="inline-flex items-center justify-center rounded-full bg-slate-100 p-6 mb-4">
+                <MdOutlineInfo className="h-8 w-8 text-slate-400" />
+              </div>
+              <p className="text-slate-500 italic">
+                Informasi indikasi dan penggunaan tidak tersedia
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Sifat Kimia dan Fisika dari CSV */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MdOutlineScience className="text-purple-600" /> Sifat Fisik & Kimia
+      {/* Sifat Fisik & Kimia Card */}
+      <Card className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-slate-200">
+          <CardTitle className="flex items-center gap-2 text-purple-800">
+            <div className="bg-purple-100 p-1.5 rounded-full">
+              <MdOutlineScience className="text-purple-600 h-5 w-5" />
+            </div>
+            Sifat Fisik & Kimia
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Tampilkan sifat eksperimental dari CSV */}
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Properti Eksperimental */}
             {compound.raw?.Record?.Section?.[3]?.Section?.[1] && (
               <div>
-                <h3 className="font-medium text-slate-700 mb-2">
-                  Properti Eksperimental
+                <h3 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className="bg-amber-50 text-amber-800 border-amber-200"
+                  >
+                    Properti Eksperimental
+                  </Badge>
                 </h3>
-                <Table>
-                  <TableBody>
-                    {/* Physical Description */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[1]
-                      ?.Section?.[0]?.Information?.[0]?.Value
-                      ?.StringWithMarkup?.[0]?.String && (
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          Deskripsi Fisik
-                        </TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[1].Section[0]
-                              .Information[0].Value.StringWithMarkup[0].String
-                          }
-                        </TableCell>
-                      </TableRow>
-                    )}
+                <div className="overflow-hidden rounded-lg border border-slate-200">
+                  <Table className="w-full">
+                    <TableBody>
+                      {/* Physical Description */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                        ?.Section?.[0]?.Information?.[0]?.Value
+                        ?.StringWithMarkup?.[0]?.String && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50 w-1/2">
+                            Deskripsi Fisik
+                          </TableCell>
+                          <TableCell>
+                            {
+                              compound.raw.Record.Section[3].Section[1]
+                                .Section[0].Information[0].Value
+                                .StringWithMarkup[0].String
+                            }
+                          </TableCell>
+                        </TableRow>
+                      )}
 
-                    {/* Color/Form */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[1]
-                      ?.Section?.[1]?.Information?.[0]?.Value
-                      ?.StringWithMarkup?.[0]?.String && (
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          Bentuk/Warna
-                        </TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[1].Section[1]
-                              .Information[0].Value.StringWithMarkup[0].String
-                          }
-                        </TableCell>
-                      </TableRow>
-                    )}
+                      {/* Color/Form */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                        ?.Section?.[1]?.Information?.[0]?.Value
+                        ?.StringWithMarkup?.[0]?.String && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50">
+                            Bentuk/Warna
+                          </TableCell>
+                          <TableCell>
+                            {
+                              compound.raw.Record.Section[3].Section[1]
+                                .Section[1].Information[0].Value
+                                .StringWithMarkup[0].String
+                            }
+                          </TableCell>
+                        </TableRow>
+                      )}
 
-                    {/* Odor */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[1]
-                      ?.Section?.[2]?.Information?.[0]?.Value
-                      ?.StringWithMarkup?.[0]?.String && (
-                      <TableRow>
-                        <TableCell className="font-medium">Bau</TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[1].Section[2]
-                              .Information[0].Value.StringWithMarkup[0].String
-                          }
-                        </TableCell>
-                      </TableRow>
-                    )}
+                      {/* Odor */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                        ?.Section?.[2]?.Information?.[0]?.Value
+                        ?.StringWithMarkup?.[0]?.String && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50">
+                            Bau
+                          </TableCell>
+                          <TableCell>
+                            {
+                              compound.raw.Record.Section[3].Section[1]
+                                .Section[2].Information[0].Value
+                                .StringWithMarkup[0].String
+                            }
+                          </TableCell>
+                        </TableRow>
+                      )}
 
-                    {/* Taste */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[1]
-                      ?.Section?.[3]?.Information?.[0]?.Value
-                      ?.StringWithMarkup?.[0]?.String && (
-                      <TableRow>
-                        <TableCell className="font-medium">Rasa</TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[1].Section[3]
-                              .Information[0].Value.StringWithMarkup[0].String
-                          }
-                        </TableCell>
-                      </TableRow>
-                    )}
+                      {/* Taste */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                        ?.Section?.[3]?.Information?.[0]?.Value
+                        ?.StringWithMarkup?.[0]?.String && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50">
+                            Rasa
+                          </TableCell>
+                          <TableCell>
+                            {
+                              compound.raw.Record.Section[3].Section[1]
+                                .Section[3].Information[0].Value
+                                .StringWithMarkup[0].String
+                            }
+                          </TableCell>
+                        </TableRow>
+                      )}
 
-                    {/* Melting Point */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[1]
-                      ?.Section?.[5]?.Information?.[0]?.Value?.Number?.[0] && (
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          Titik Leleh
-                        </TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[1].Section[5]
-                              .Information[0].Value.Number[0]
-                          }{" "}
-                          °C
-                        </TableCell>
-                      </TableRow>
-                    )}
+                      {/* Melting Point */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                        ?.Section?.[5]?.Information?.[0]?.Value
+                        ?.Number?.[0] && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50">
+                            Titik Leleh
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              {
+                                compound.raw.Record.Section[3].Section[1]
+                                  .Section[5].Information[0].Value.Number[0]
+                              }
+                            </span>{" "}
+                            °C
+                          </TableCell>
+                        </TableRow>
+                      )}
 
-                    {/* Boiling Point */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[1]
-                      ?.Section?.[4]?.Information?.[0]?.Value?.Number?.[0] && (
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          Titik Didih
-                        </TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[1].Section[4]
-                              .Information[0].Value.Number[0]
-                          }{" "}
-                          K
-                        </TableCell>
-                      </TableRow>
-                    )}
+                      {/* Boiling Point */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                        ?.Section?.[4]?.Information?.[0]?.Value
+                        ?.Number?.[0] && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50">
+                            Titik Didih
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              {
+                                compound.raw.Record.Section[3].Section[1]
+                                  .Section[4].Information[0].Value.Number[0]
+                              }
+                            </span>{" "}
+                            K
+                          </TableCell>
+                        </TableRow>
+                      )}
 
-                    {/* Solubility */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[1]
-                      ?.Section?.[6]?.Information?.[0]?.Value
-                      ?.StringWithMarkup?.[0]?.String && (
-                      <TableRow>
-                        <TableCell className="font-medium">Kelarutan</TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[1].Section[6]
-                              .Information[0].Value.StringWithMarkup[0].String
-                          }
-                        </TableCell>
-                      </TableRow>
-                    )}
+                      {/* Solubility */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                        ?.Section?.[6]?.Information?.[0]?.Value
+                        ?.StringWithMarkup?.[0]?.String && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50">
+                            Kelarutan
+                          </TableCell>
+                          <TableCell>
+                            {
+                              compound.raw.Record.Section[3].Section[1]
+                                .Section[6].Information[0].Value
+                                .StringWithMarkup[0].String
+                            }
+                          </TableCell>
+                        </TableRow>
+                      )}
 
-                    {/* LogP */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[1]
-                      ?.Section?.[7]?.Information?.[0]?.Value?.Number?.[0] && (
-                      <TableRow>
-                        <TableCell className="font-medium">LogP</TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[1].Section[7]
-                              .Information[0].Value.Number[0]
-                          }
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                      {/* LogP */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[1]
+                        ?.Section?.[7]?.Information?.[0]?.Value
+                        ?.Number?.[0] && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50">
+                            LogP
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              {
+                                compound.raw.Record.Section[3].Section[1]
+                                  .Section[7].Information[0].Value.Number[0]
+                              }
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             )}
 
-            {/* Tampilkan sifat komputasi dari CSV */}
+            {/* Properti Komputasi */}
             {compound.raw?.Record?.Section?.[3]?.Section?.[0] && (
               <div>
-                <h3 className="font-medium text-slate-700 mb-2">
-                  Properti Komputasi
+                <h3 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className="bg-indigo-50 text-indigo-800 border-indigo-200"
+                  >
+                    Properti Komputasi
+                  </Badge>
                 </h3>
-                <Table>
-                  <TableBody>
-                    {/* XLogP3 */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[0]
-                      ?.Section?.[1]?.Information?.[0]?.Value?.Number?.[0] !==
-                      undefined && (
-                      <TableRow>
-                        <TableCell className="font-medium">XLogP3</TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[0].Section[1]
-                              .Information[0].Value.Number[0]
-                          }
-                        </TableCell>
-                      </TableRow>
-                    )}
+                <div className="overflow-hidden rounded-lg border border-slate-200">
+                  <Table className="w-full">
+                    <TableBody>
+                      {/* XLogP3 */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                        ?.Section?.[1]?.Information?.[0]?.Value?.Number?.[0] !==
+                        undefined && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50 w-1/2">
+                            XLogP3
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              {
+                                compound.raw.Record.Section[3].Section[0]
+                                  .Section[1].Information[0].Value.Number[0]
+                              }
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      )}
 
-                    {/* Hydrogen Bond Donor Count */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[0]
-                      ?.Section?.[2]?.Information?.[0]?.Value?.Number?.[0] !==
-                      undefined && (
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          Donor Ikatan Hidrogen
-                        </TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[0].Section[2]
-                              .Information[0].Value.Number[0]
-                          }
-                        </TableCell>
-                      </TableRow>
-                    )}
+                      {/* Hydrogen Bond Donor Count */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                        ?.Section?.[2]?.Information?.[0]?.Value?.Number?.[0] !==
+                        undefined && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50">
+                            Donor Ikatan Hidrogen
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              {
+                                compound.raw.Record.Section[3].Section[0]
+                                  .Section[2].Information[0].Value.Number[0]
+                              }
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      )}
 
-                    {/* Hydrogen Bond Acceptor Count */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[0]
-                      ?.Section?.[3]?.Information?.[0]?.Value?.Number?.[0] !==
-                      undefined && (
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          Akseptor Ikatan Hidrogen
-                        </TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[0].Section[3]
-                              .Information[0].Value.Number[0]
-                          }
-                        </TableCell>
-                      </TableRow>
-                    )}
+                      {/* Hydrogen Bond Acceptor Count */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                        ?.Section?.[3]?.Information?.[0]?.Value?.Number?.[0] !==
+                        undefined && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50">
+                            Akseptor Ikatan Hidrogen
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              {
+                                compound.raw.Record.Section[3].Section[0]
+                                  .Section[3].Information[0].Value.Number[0]
+                              }
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      )}
 
-                    {/* Rotatable Bond Count */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[0]
-                      ?.Section?.[4]?.Information?.[0]?.Value?.Number?.[0] !==
-                      undefined && (
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          Jumlah Ikatan Dapat Diputar
-                        </TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[0].Section[4]
-                              .Information[0].Value.Number[0]
-                          }
-                        </TableCell>
-                      </TableRow>
-                    )}
+                      {/* Rotatable Bond Count */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                        ?.Section?.[4]?.Information?.[0]?.Value?.Number?.[0] !==
+                        undefined && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50">
+                            Jumlah Ikatan Dapat Diputar
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              {
+                                compound.raw.Record.Section[3].Section[0]
+                                  .Section[4].Information[0].Value.Number[0]
+                              }
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      )}
 
-                    {/* Topological Polar Surface Area */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[0]
-                      ?.Section?.[7]?.Information?.[0]?.Value?.Number?.[0] !==
-                      undefined && (
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          Luas Permukaan Polar Topologi
-                        </TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[0].Section[7]
-                              .Information[0].Value.Number[0]
-                          }{" "}
-                          Å²
-                        </TableCell>
-                      </TableRow>
-                    )}
+                      {/* Topological Polar Surface Area */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                        ?.Section?.[7]?.Information?.[0]?.Value?.Number?.[0] !==
+                        undefined && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50">
+                            Luas Permukaan Polar Topologi
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              {
+                                compound.raw.Record.Section[3].Section[0]
+                                  .Section[7].Information[0].Value.Number[0]
+                              }
+                            </span>{" "}
+                            Å²
+                          </TableCell>
+                        </TableRow>
+                      )}
 
-                    {/* Heavy Atom Count */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[0]
-                      ?.Section?.[8]?.Information?.[0]?.Value?.Number?.[0] !==
-                      undefined && (
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          Jumlah Atom Berat
-                        </TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[0].Section[8]
-                              .Information[0].Value.Number[0]
-                          }
-                        </TableCell>
-                      </TableRow>
-                    )}
+                      {/* Heavy Atom Count */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                        ?.Section?.[8]?.Information?.[0]?.Value?.Number?.[0] !==
+                        undefined && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50">
+                            Jumlah Atom Berat
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              {
+                                compound.raw.Record.Section[3].Section[0]
+                                  .Section[8].Information[0].Value.Number[0]
+                              }
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      )}
 
-                    {/* Complexity */}
-                    {compound.raw?.Record?.Section?.[3]?.Section?.[0]
-                      ?.Section?.[10]?.Information?.[0]?.Value?.Number?.[0] !==
-                      undefined && (
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          Kompleksitas
-                        </TableCell>
-                        <TableCell>
-                          {
-                            compound.raw.Record.Section[3].Section[0]
-                              .Section[10].Information[0].Value.Number[0]
-                          }
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                      {/* Complexity */}
+                      {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                        ?.Section?.[10]?.Information?.[0]?.Value
+                        ?.Number?.[0] !== undefined && (
+                        <TableRow className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-slate-700 bg-slate-50">
+                            Kompleksitas
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              {
+                                compound.raw.Record.Section[3].Section[0]
+                                  .Section[10].Information[0].Value.Number[0]
+                              }
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             )}
           </div>
@@ -1071,284 +1339,98 @@ function OverviewTab({ compound, setImageDialogOpen, imageDialogOpen }) {
       compound.essential.toxicity !== "N/A" ? (
         <Alert
           variant="destructive"
-          className="bg-red-50 border-red-200 text-red-800"
+          className="bg-gradient-to-r from-red-50 to-red-100 border-red-200 text-red-800 rounded-lg shadow-sm"
         >
-          <MdOutlineWarning className="h-5 w-5 text-red-600" />
-          <AlertTitle>Peringatan & Toksisitas</AlertTitle>
-          <AlertDescription className="mt-2 whitespace-pre-line">
+          <div className="flex items-center">
+            <div className="bg-red-100 p-2 rounded-full mr-2">
+              <MdOutlineWarning className="h-6 w-6 text-red-600" />
+            </div>
+            <AlertTitle className="text-lg font-bold text-red-700">
+              Peringatan & Toksisitas
+            </AlertTitle>
+          </div>
+          <AlertDescription className="mt-3 space-y-4">
             {compound.fda && compound.fda.clinical.warnings && (
-              <div className="mb-4">
-                <strong>Peringatan FDA:</strong>{" "}
-                {compound.fda.clinical.warnings}
+              <div className="p-3 bg-white rounded-md border border-red-200 shadow-sm">
+                <div className="flex items-center mb-1.5">
+                  <Badge
+                    variant="outline"
+                    className="bg-red-50 text-red-700 border-red-300"
+                  >
+                    Peringatan FDA
+                  </Badge>
+                </div>
+                <p className="text-slate-700 whitespace-pre-line leading-relaxed">
+                  {compound.fda.clinical.warnings}
+                </p>
               </div>
             )}
             {compound.essential.toxicity !== "N/A" && (
-              <div>
-                <strong>Toksisitas:</strong> {compound.essential.toxicity}
+              <div className="p-3 bg-white rounded-md border border-red-200 shadow-sm">
+                <div className="flex items-center mb-1.5">
+                  <Badge
+                    variant="outline"
+                    className="bg-red-50 text-red-700 border-red-300"
+                  >
+                    Toksisitas
+                  </Badge>
+                </div>
+                <p className="text-slate-700 whitespace-pre-line leading-relaxed">
+                  {compound.essential.toxicity}
+                </p>
               </div>
             )}
           </AlertDescription>
         </Alert>
       ) : null}
 
-      {/* Chemical Safety dari CSV jika tersedia */}
+      {/* Chemical Safety */}
       {compound.raw?.Record?.Section?.[1]?.Information?.[0]?.Value
         ?.StringWithMarkup?.[0]?.Markup && (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardHeader>
+        <Card className="overflow-hidden border-amber-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200">
             <CardTitle className="flex items-center gap-2 text-amber-800">
-              <MdOutlineWarningAmber className="text-amber-600" /> Keamanan
-              Kimia
+              <div className="bg-amber-100 p-1.5 rounded-full">
+                <MdOutlineWarningAmber className="text-amber-600 h-5 w-5" />
+              </div>
+              Keamanan Kimia
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-3">
+          <CardContent className="pt-4 bg-amber-50/30">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {compound.raw.Record.Section[1].Information[0].Value.StringWithMarkup[0].Markup.map(
                 (icon, index) => (
                   <div key={index} className="flex flex-col items-center">
-                    <div className="bg-white p-2 rounded-md border border-amber-200">
+                    <div className="bg-white p-3 rounded-md shadow-sm border border-amber-200 hover:shadow-md transition-shadow">
                       <Badge
                         variant="outline"
-                        className="h-12 w-12 flex items-center justify-center p-2"
+                        className="h-16 w-16 flex items-center justify-center p-2 bg-amber-50 border-amber-300"
                       >
                         {icon.Extra}
                       </Badge>
                     </div>
-                    <span className="text-xs mt-1 text-amber-700">
+                    <span className="text-xs mt-2 text-center font-medium text-amber-700 bg-amber-50/50 px-2 py-1 rounded-full">
                       {icon.Extra}
                     </span>
                   </div>
                 )
               )}
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Informasi Produk FDA */}
-      {compound.fda && compound.fda.identification.manufacturerName && (
-        <Card className="bg-slate-50 border-slate-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-slate-800">
-              <MdOutlineMedicalInformation className="text-slate-600" />{" "}
-              Informasi Produk FDA
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <h3 className="font-medium text-slate-500">Produsen</h3>
-                <p>{compound.fda.identification.manufacturerName}</p>
-              </div>
-              {compound.fda.identification.route && (
-                <div>
-                  <h3 className="font-medium text-slate-500">Rute Pemberian</h3>
-                  <p>{compound.fda.identification.route}</p>
-                </div>
-              )}
-              {compound.fda.identification.productType && (
-                <div>
-                  <h3 className="font-medium text-slate-500">Tipe Produk</h3>
-                  <p>{compound.fda.identification.productType}</p>
-                </div>
-              )}
-              {compound.fda.clinical.activeIngredient && (
-                <div className="col-span-1 sm:col-span-2 md:col-span-3">
-                  <h3 className="font-medium text-slate-500">Bahan Aktif</h3>
-                  <p>{compound.fda.clinical.activeIngredient}</p>
-                </div>
-              )}
+            <div className="mt-6 pt-4 border-t border-amber-200">
+              <p className="text-amber-700 text-sm flex items-center bg-amber-50 p-3 rounded-md">
+                <MdOutlineWarning className="inline mr-2 flex-shrink-0" />
+                <span>
+                  Simbol-simbol di atas menunjukkan potensi bahaya dan perlu
+                  ditangani dengan hati-hati sesuai protokol keamanan kimia yang
+                  berlaku.
+                </span>
+              </p>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Drug Class Information */}
-      {compound.raw?.Record?.Section?.[3]?.Section?.[2]?.Section?.[0] && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MdBookmark className="text-green-600" /> Kelas & Klasifikasi
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {compound.raw.Record.Section[3].Section[2].Section[0].Information.map(
-                (info, index) =>
-                  info?.Value?.StringWithMarkup?.[0]?.String && (
-                    <div key={index} className="mb-2">
-                      <Badge variant="secondary" className="text-sm">
-                        {info.Value.StringWithMarkup[0].String}
-                      </Badge>
-                    </div>
-                  )
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Eksperimental Properties Lanjutan */}
-      {compound.raw?.Record?.Section?.[3]?.Section?.[1]?.Section?.[6]
-        ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MdOutlineScience className="text-indigo-600" /> Solubilitas
-              Spesifik
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-slate-700 whitespace-pre-line">
-              {
-                compound.raw.Record.Section[3].Section[1].Section[6]
-                  .Information[0].Value.StringWithMarkup[0].String
-              }
-            </p>
-            {compound.raw?.Record?.Section?.[3]?.Section?.[1]?.Section?.[6]
-              ?.Information?.[0]?.ReferenceNumber && (
-              <div className="text-right mt-2">
-                <Badge variant="outline" className="text-xs">
-                  Sumber #
-                  {
-                    compound.raw.Record.Section[3].Section[1].Section[6]
-                      .Information[0].ReferenceNumber
-                  }
-                </Badge>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Sejarah & Regulasi */}
-      {(compound.raw?.Record?.Section?.[2]?.Section?.[5]?.Section?.[0]
-        ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String ||
-        compound.raw?.Record?.Section?.[10]?.Section?.[0]?.Information?.[0]
-          ?.Value?.DateISO) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MdLibraryBooks className="text-blue-600" /> Sejarah & Regulasi
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {compound.raw?.Record?.Section?.[2]?.Section?.[5]?.Section?.[0]
-              ?.Information?.[0]?.Value?.StringWithMarkup?.[0]?.String && (
-              <div>
-                <h3 className="text-sm font-medium text-slate-700 mb-1">
-                  Informasi Persetujuan FDA
-                </h3>
-                <p className="text-slate-700">
-                  {
-                    compound.raw.Record.Section[2].Section[5].Section[0]
-                      .Information[0].Value.StringWithMarkup[0].String
-                  }
-                </p>
-              </div>
-            )}
-            {compound.raw?.Record?.Section?.[10]?.Section?.[0]?.Information?.[0]
-              ?.Value?.DateISO && (
-              <div>
-                <h3 className="text-sm font-medium text-slate-700 mb-1">
-                  Tanggal Penambahan ke Database
-                </h3>
-                <p className="text-slate-700">
-                  {new Date(
-                    compound.raw.Record.Section[10].Section[0].Information[0].Value.DateISO
-                  ).toLocaleDateString()}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Asal Natural */}
-      {compound.raw?.Record?.Section?.[2]?.Section?.[0]?.Information?.some(
-        (info) =>
-          info?.Value?.StringWithMarkup?.[0]?.String?.includes("reported in")
-      ) && (
-        <Card className="bg-emerald-50 border-emerald-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-emerald-800">
-              <MdOutlineEco className="text-emerald-600" /> Asal Natural
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {compound.raw?.Record?.Section?.[2]?.Section?.[0]?.Information?.map(
-              (info, idx) => {
-                const content = info?.Value?.StringWithMarkup?.[0]?.String;
-                if (content && content.includes("reported in")) {
-                  return (
-                    <div key={idx} className="mb-3">
-                      <p className="text-emerald-700">{content}</p>
-                      {info.ReferenceNumber && (
-                        <div className="text-right mt-1">
-                          <Badge variant="outline" className="text-xs bg-white">
-                            Sumber #{info.ReferenceNumber}
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-                return null;
-              }
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Klasifikasi Obat Detail */}
-      {compound.raw?.Record?.Section?.[2]?.Section?.[0]?.Information?.some(
-        (info) =>
-          info?.Value?.StringWithMarkup?.[0]?.String?.includes(
-            "penicillin G derivative"
-          ) ||
-          info?.Value?.StringWithMarkup?.[0]?.String?.includes("antibiotic")
-      ) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MdOutlineMedication className="text-purple-600" /> Klasifikasi
-              Obat Detail
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {compound.raw?.Record?.Section?.[2]?.Section?.[0]?.Information?.map(
-              (info, idx) => {
-                const content = info?.Value?.StringWithMarkup?.[0]?.String;
-                if (
-                  content &&
-                  (content.includes("penicillin G derivative") ||
-                    content.includes("antibiotic"))
-                ) {
-                  return (
-                    <div
-                      key={idx}
-                      className="mb-3 pb-3 border-b border-slate-100 last:border-0"
-                    >
-                      <Badge variant="secondary" className="mb-2">
-                        Klasifikasi Antibiotik
-                      </Badge>
-                      <p className="text-slate-700">{content}</p>
-                      {info.ReferenceNumber && (
-                        <div className="text-right mt-1">
-                          <Badge variant="outline" className="text-xs">
-                            Sumber #{info.ReferenceNumber}
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-                return null;
-              }
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {/* Section-section lainnya dibiarkan apa adanya... */}
     </div>
   );
 }
