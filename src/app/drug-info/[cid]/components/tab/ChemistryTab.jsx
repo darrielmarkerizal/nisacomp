@@ -163,7 +163,7 @@ function ChemistryTab({ compound }) {
         }}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <Card className="md:col-span-1">
           <CardHeader className="border-b pb-3">
             <CardTitle className="flex items-center gap-2">
@@ -288,7 +288,7 @@ function ChemistryTab({ compound }) {
           </CardContent>
         </Card>
 
-        {/* Bagian card properti kimia tetap sama */}
+        {/* Properti kimia dengan responsivitas lebih baik */}
         <div className="md:col-span-1 lg:col-span-2">
           <Card>
             <CardHeader className="border-b pb-3">
@@ -300,7 +300,7 @@ function ChemistryTab({ compound }) {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
-              <ScrollArea className="w-full overflow-auto max-h-[400px]">
+              <ScrollArea className="w-full overflow-auto max-h-[350px] md:max-h-[400px] lg:max-h-[450px]">
                 <ChemicalPropertiesTable compound={compound} />
               </ScrollArea>
               <ChemicalPropertiesChart compound={compound} />
@@ -319,12 +319,12 @@ function ChemistryTab({ compound }) {
             <span>Identifikasi & Nama Lain</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-5 pt-4">
+        <CardContent className="space-y-4 sm:space-y-5 pt-4">
           <div>
-            <h3 className="text-sm font-medium text-slate-500 mb-1.5">
+            <h3 className="text-xs sm:text-sm font-medium text-slate-500 mb-1.5">
               Nama IUPAC
             </h3>
-            <div className="font-medium break-words p-3 bg-slate-50 rounded-md border border-slate-100 relative">
+            <div className="font-medium break-words p-2 sm:p-3 bg-slate-50 rounded-md border border-slate-100 relative text-xs sm:text-sm">
               {(() => {
                 // Gunakan path yang sama dengan OverviewTab untuk IUPAC name
                 const iupacNameSection =
@@ -371,12 +371,12 @@ function ChemistryTab({ compound }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
             <div>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <h3 className="text-sm font-medium text-slate-500 flex items-center gap-1 mb-1.5 cursor-help">
+                    <h3 className="text-xs sm:text-sm font-medium text-slate-500 flex items-center gap-1 mb-1.5 cursor-help">
                       InChIKey
                       <span className="inline-block w-4 h-4 rounded-full bg-slate-100 text-slate-500 text-xs flex items-center justify-center">
                         ?
@@ -445,7 +445,7 @@ function ChemistryTab({ compound }) {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <h3 className="text-sm font-medium text-slate-500 flex items-center gap-1 mb-1.5 cursor-help">
+                    <h3 className="text-xs sm:text-sm font-medium text-slate-500 flex items-center gap-1 mb-1.5 cursor-help">
                       SMILES
                       <span className="inline-block w-4 h-4 rounded-full bg-slate-100 text-slate-500 text-xs flex items-center justify-center">
                         ?
@@ -512,40 +512,40 @@ function ChemistryTab({ compound }) {
 
           {compound.essential.synonyms[0] !== "N/A" && (
             <div className="pt-2">
-              <h3 className="text-sm font-medium text-slate-500 mb-2">
+              <h3 className="text-xs sm:text-sm font-medium text-slate-500 mb-2">
                 Sinonim & Nama Lain
               </h3>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {compound.essential.synonyms
-                  .slice(0, 15)
+                  .slice(0, 10)
                   .map((synonym, idx) => (
                     <Badge
                       key={idx}
                       variant="secondary"
-                      className="text-xs py-1 px-2"
+                      className="text-2xs sm:text-xs py-0.5 sm:py-1 px-1.5 sm:px-2"
                     >
                       {synonym}
                     </Badge>
                   ))}
               </div>
-              {compound.essential.synonyms.length > 15 && (
+              {compound.essential.synonyms.length > 10 && (
                 <Accordion type="single" collapsible className="mt-2">
                   <AccordionItem value="more-synonyms" className="border-none">
-                    <AccordionTrigger className="text-xs text-slate-600 py-2 hover:no-underline">
+                    <AccordionTrigger className="text-2xs sm:text-xs text-slate-600 py-1.5 sm:py-2 hover:no-underline">
                       <span className="text-blue-600">
-                        Tampilkan {compound.essential.synonyms.length - 15} nama
+                        Tampilkan {compound.essential.synonyms.length - 10} nama
                         lainnya
                       </span>
                     </AccordionTrigger>
                     <AccordionContent>
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
                         {compound.essential.synonyms
-                          .slice(15)
+                          .slice(10)
                           .map((synonym, idx) => (
                             <Badge
                               key={idx}
                               variant="outline"
-                              className="text-xs bg-slate-50"
+                              className="text-2xs sm:text-xs bg-slate-50"
                             >
                               {synonym}
                             </Badge>
@@ -898,11 +898,11 @@ function ChemicalPropertiesTable({ compound }) {
       <Table>
         <TableHeader className="bg-gradient-to-r from-slate-50 to-slate-100 sticky top-0 z-10">
           <TableRow>
-            <TableHead className="w-2/5 sm:w-1/3 font-medium text-slate-700 py-3.5 px-4">
-              <span className="block text-sm">Properti</span>
+            <TableHead className="w-[40%] sm:w-1/3 font-medium text-slate-700 py-2.5 sm:py-3.5 px-3 sm:px-4">
+              <span className="block text-xs sm:text-sm">Properti</span>
             </TableHead>
-            <TableHead className="font-medium text-slate-700 py-3.5 px-4">
-              <span className="block text-sm">Nilai</span>
+            <TableHead className="font-medium text-slate-700 py-2.5 sm:py-3.5 px-3 sm:px-4">
+              <span className="block text-xs sm:text-sm">Nilai</span>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -910,25 +910,27 @@ function ChemicalPropertiesTable({ compound }) {
           {tableData.map((row, index) => (
             <TableRow
               key={index}
-              className={`transition-colors border-b last:border-0 ${index % 2 === 0 ? "bg-white" : "bg-slate-50/40"} hover:bg-slate-100/40`}
+              className={`transition-colors border-b last:border-0 ${
+                index % 2 === 0 ? "bg-white" : "bg-slate-50/40"
+              } hover:bg-slate-100/40`}
             >
-              <TableCell className="font-medium text-slate-700 py-3.5 px-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm sm:text-base leading-relaxed">
+              <TableCell className="font-medium text-slate-700 py-2 sm:py-3.5 px-3 sm:px-4">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <span className="text-xs sm:text-sm leading-relaxed">
                     {row.label}
                   </span>
                 </div>
               </TableCell>
-              <TableCell className="py-3.5 px-4">
+              <TableCell className="py-2 sm:py-3.5 px-3 sm:px-4">
                 {row.isCode ? (
                   <div className="w-full overflow-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
-                    <span className="font-mono text-xs bg-white p-2 rounded-md border border-slate-200 inline-block shadow-sm">
+                    <span className="font-mono text-2xs sm:text-xs bg-white p-1.5 sm:p-2 rounded-md border border-slate-200 inline-block shadow-sm">
                       {row.value}
                     </span>
                   </div>
                 ) : (
                   <div className="flex items-center">
-                    <span className="text-sm sm:text-base text-slate-800 font-medium">
+                    <span className="text-xs sm:text-sm text-slate-800 font-medium break-words">
                       {row.value}
                     </span>
                   </div>
@@ -975,18 +977,26 @@ function ChemicalPropertiesChart({ compound }) {
   if (chartData.length === 0) return null;
 
   return (
-    <div className="mt-6 border border-slate-200 rounded-lg p-4 bg-white">
-      <h3 className="text-sm font-medium text-slate-700 mb-4">
+    <div className="mt-4 sm:mt-6 border border-slate-200 rounded-lg p-3 sm:p-4 bg-white">
+      <h3 className="text-xs sm:text-sm font-medium text-slate-700 mb-2 sm:mb-4">
         Visualisasi Properti
       </h3>
-      <ResponsiveContainer width="100%" height={200}>
-        <BarChart data={chartData}>
-          <XAxis dataKey="name" fontSize={12} />
+      <ResponsiveContainer width="100%" height={180} minHeight={150}>
+        <BarChart
+          data={chartData}
+          margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+        >
+          <XAxis
+            dataKey="name"
+            fontSize={10}
+            tickMargin={5}
+            tick={{ fontSize: "0.65rem" }}
+          />
           <RechartsTooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
                 return (
-                  <div className="bg-slate-800 text-white text-xs p-2 rounded shadow">
+                  <div className="bg-slate-800 text-white text-2xs sm:text-xs p-1.5 sm:p-2 rounded shadow">
                     <p>{`${payload[0].name}: ${payload[0].value}`}</p>
                   </div>
                 );
@@ -994,7 +1004,12 @@ function ChemicalPropertiesChart({ compound }) {
               return null;
             }}
           />
-          <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
+          <Bar
+            dataKey="value"
+            fill="#6366f1"
+            radius={[4, 4, 0, 0]}
+            barSize={window.innerWidth < 640 ? 20 : 30}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -1055,7 +1070,7 @@ function SimilarCompounds({ compound }) {
   };
 
   return (
-    <Card className="mt-6">
+    <Card className="mt-4 sm:mt-6">
       <CardHeader className="border-b pb-3">
         <CardTitle className="flex items-center gap-2">
           <div className="p-2 bg-green-50 rounded-full">
@@ -1066,38 +1081,38 @@ function SimilarCompounds({ compound }) {
       </CardHeader>
       <CardContent className="pt-4">
         {similarCompounds.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {similarCompounds.map((similar) => (
               <div
                 key={similar.cid}
                 className="group cursor-pointer"
                 onClick={() => startComparison(similar)}
               >
-                <div className="relative border border-slate-200 bg-white rounded-lg p-4 shadow-sm transition-shadow hover:shadow-md hover:border-indigo-200">
-                  <div className="absolute top-2 right-2 bg-indigo-100 text-indigo-700 text-xs font-medium px-2 py-1 rounded-full">
+                <div className="relative border border-slate-200 bg-white rounded-lg p-3 sm:p-4 shadow-sm transition-shadow hover:shadow-md hover:border-indigo-200">
+                  <div className="absolute top-2 right-2 bg-indigo-100 text-indigo-700 text-2xs sm:text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
                     {similar.similarity_score}% mirip
                   </div>
 
-                  <div className="flex items-center justify-center mb-3 bg-slate-50 p-2 rounded-md">
+                  <div className="flex items-center justify-center mb-2 sm:mb-3 bg-slate-50 p-1.5 sm:p-2 rounded-md">
                     <Image
                       src={similar.thumbnail_url}
                       alt={similar.name}
-                      width={120}
-                      height={120}
+                      width={window.innerWidth < 640 ? 80 : 120}
+                      height={window.innerWidth < 640 ? 80 : 120}
                       className="transition-transform group-hover:scale-105"
                     />
                   </div>
 
-                  <h3 className="text-sm font-medium text-slate-900 truncate mb-1">
+                  <h3 className="text-2xs sm:text-sm font-medium text-slate-900 truncate mb-0.5 sm:mb-1">
                     {similar.name}
                   </h3>
 
-                  <div className="text-xs text-slate-600 mb-2">
+                  <div className="text-2xs sm:text-xs text-slate-600 mb-1 sm:mb-2">
                     <span className="font-medium">Formula:</span>{" "}
                     {formatFormula(similar.formula)}
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-slate-500">
+                  <div className="flex items-center justify-between text-2xs sm:text-xs text-slate-500">
                     <span>MW: {similar.weight}</span>
                     <span>CID: {similar.cid}</span>
                   </div>
@@ -1106,54 +1121,55 @@ function SimilarCompounds({ compound }) {
             ))}
           </div>
         ) : (
-          <div className="col-span-full flex flex-col items-center justify-center py-8 text-center">
-            <div className="p-3 bg-slate-100 rounded-full mb-3">
-              <MdOutlineScience className="h-6 w-6 text-slate-500" />
+          <div className="col-span-full flex flex-col items-center justify-center py-6 sm:py-8 text-center">
+            <div className="p-2 sm:p-3 bg-slate-100 rounded-full mb-2 sm:mb-3">
+              <MdOutlineScience className="h-5 sm:h-6 w-5 sm:w-6 text-slate-500" />
             </div>
-            <h3 className="text-slate-700 font-medium mb-1">
+            <h3 className="text-sm sm:text-base text-slate-700 font-medium mb-1">
               Bandingkan dengan senyawa serupa
             </h3>
-            <p className="text-slate-500 text-sm mb-4">
+            <p className="text-2xs sm:text-sm text-slate-500 mb-3 sm:mb-4 max-w-xs sm:max-w-sm mx-auto">
               Lihat perbandingan properti kimia dengan senyawa yang memiliki
               struktur serupa
             </p>
             <Button
               variant="outline"
-              className="gap-2"
+              className="gap-1 sm:gap-2 text-xs sm:text-sm py-1 sm:py-2 h-auto"
               onClick={fetchSimilarCompounds}
               disabled={loading}
             >
               {loading ? (
                 <>
-                  <div className="h-4 w-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin mr-1"></div>
+                  <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin mr-0.5 sm:mr-1"></div>
                   <span>Mencari...</span>
                 </>
               ) : (
                 <>
-                  <MdOutlineCompare className="h-4 w-4" />
+                  <MdOutlineCompare className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span>Temukan Senyawa Serupa</span>
                 </>
               )}
             </Button>
-            {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+            {error && (
+              <p className="text-red-500 text-2xs sm:text-xs mt-2">{error}</p>
+            )}
           </div>
         )}
       </CardContent>
 
       <Dialog open={compareDialog} onOpenChange={setCompareDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="w-[calc(100%-2rem)] max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <MdCompare className="h-5 w-5" />
-              Perbandingan Senyawa
+              <MdCompare className="h-4 sm:h-5 w-4 sm:w-5" />
+              <span className="text-sm sm:text-base">Perbandingan Senyawa</span>
             </DialogTitle>
             <DialogClose />
           </DialogHeader>
 
           {compoundToCompare && (
-            <div className="py-4">
-              <div className="grid grid-cols-2 gap-6">
-                {/* Kolom kiri - Senyawa Asli */}
+            <div className="py-2 sm:py-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div className="border border-slate-200 rounded-lg p-4">
                   <div className="text-center mb-3">
                     <h3 className="font-medium text-lg">{compound.name}</h3>
@@ -1177,7 +1193,6 @@ function SimilarCompounds({ compound }) {
                       <span className="font-medium">Formula</span>
                       <span>
                         {(() => {
-                          // Menggunakan logika yang sama dengan getMolecularFormula
                           const molecularFormulaSection =
                             compound.raw?.Record?.Section?.find(
                               (section) =>
@@ -1219,7 +1234,6 @@ function SimilarCompounds({ compound }) {
                       <span className="font-medium">Berat Molekul</span>
                       <span>
                         {(() => {
-                          // Menggunakan logika yang sama dengan ChemicalPropertiesTable
                           const chemicalSection =
                             compound.raw?.Record?.Section?.find(
                               (section) =>
@@ -1261,7 +1275,6 @@ function SimilarCompounds({ compound }) {
                         })()}
                       </span>
                     </div>
-                    {/* XLogP3 */}
                     <div className="flex justify-between items-center border-b pb-1">
                       <span className="font-medium">XLogP3</span>
                       <span>
@@ -1273,7 +1286,6 @@ function SimilarCompounds({ compound }) {
                           : "Tidak tersedia"}
                       </span>
                     </div>
-                    {/* HB Donor */}
                     <div className="flex justify-between items-center border-b pb-1">
                       <span className="font-medium">HB Donor</span>
                       <span>
@@ -1285,7 +1297,6 @@ function SimilarCompounds({ compound }) {
                           : "Tidak tersedia"}
                       </span>
                     </div>
-                    {/* HB Acceptor */}
                     <div className="flex justify-between items-center border-b pb-1">
                       <span className="font-medium">HB Acceptor</span>
                       <span>
@@ -1300,7 +1311,6 @@ function SimilarCompounds({ compound }) {
                   </div>
                 </div>
 
-                {/* Kolom kanan - Senyawa Pembanding - biarkan seperti semula */}
                 <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                   <div className="text-center mb-3">
                     <h3 className="font-medium text-lg">
@@ -1330,7 +1340,6 @@ function SimilarCompounds({ compound }) {
                       <span className="font-medium">Berat Molekul</span>
                       <span>{compoundToCompare.weight}</span>
                     </div>
-                    {/* Tambahkan properti lain yang ingin dibandingkan */}
                   </div>
                 </div>
               </div>
