@@ -12,6 +12,11 @@ import {
   MdOutlineContentCopy,
   MdOutlineInfo,
   MdOutlineZoomIn,
+  MdCompare,
+  MdOutlineCompare,
+  MdAdd,
+  MdRemove,
+  MdRefresh,
 } from "react-icons/md";
 import { toast } from "sonner";
 
@@ -39,6 +44,27 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+
+import {
+  Bar,
+  BarChart,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+} from "recharts";
+
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function ChemistryTab({ compound }) {
   // State untuk mengelola lightbox
@@ -148,23 +174,58 @@ function ChemistryTab({ compound }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center text-center pt-4">
-            <div
-              className="p-2 bg-white rounded-lg shadow-sm border relative group cursor-pointer"
-              onClick={() => setLightboxOpen(true)}
-            >
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center rounded-lg">
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 p-2 rounded-full shadow-lg">
-                  <MdOutlineZoomIn className="h-6 w-6 text-indigo-600" />
-                </div>
-              </div>
-              <Image
-                src={compound.essential.structureUrl}
-                alt={`Struktur kimia ${compound.name}`}
-                width={200}
-                height={200}
-                className="mx-auto"
-              />
+            <div className="p-2 bg-white rounded-lg shadow-sm border relative">
+              <TransformWrapper
+                initialScale={1}
+                minScale={0.5}
+                maxScale={3}
+                wheel={{ step: 0.1 }}
+              >
+                {({ zoomIn, zoomOut, resetTransform }) => (
+                  <>
+                    <div className="absolute top-2 right-2 z-10 flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 bg-white/80 backdrop-blur-sm hover:bg-white"
+                        onClick={() => zoomIn()}
+                      >
+                        <MdAdd className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 bg-white/80 backdrop-blur-sm hover:bg-white"
+                        onClick={() => zoomOut()}
+                      >
+                        <MdRemove className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 bg-white/80 backdrop-blur-sm hover:bg-white"
+                        onClick={() => resetTransform()}
+                      >
+                        <MdRefresh className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <TransformComponent>
+                      <Image
+                        src={compound.essential.structureUrl}
+                        alt={`Struktur kimia ${compound.name}`}
+                        width={200}
+                        height={200}
+                        className="mx-auto"
+                      />
+                    </TransformComponent>
+                  </>
+                )}
+              </TransformWrapper>
             </div>
+            <p className="text-xs text-center text-slate-500 mt-2">
+              Gestur pinch untuk memperbesar, ketuk dua kali untuk memperbesar
+              spesifik
+            </p>
             <Button
               size="sm"
               variant="secondary"
@@ -242,6 +303,7 @@ function ChemistryTab({ compound }) {
               <ScrollArea className="w-full overflow-auto max-h-[400px]">
                 <ChemicalPropertiesTable compound={compound} />
               </ScrollArea>
+              <ChemicalPropertiesChart compound={compound} />
             </CardContent>
           </Card>
         </div>
@@ -587,6 +649,8 @@ function ChemistryTab({ compound }) {
           )}
         </CardContent>
       </Card>
+
+      <SimilarCompounds compound={compound} />
     </div>
   );
 }
@@ -875,6 +939,423 @@ function ChemicalPropertiesTable({ compound }) {
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+// Tambahkan fungsi untuk menampilkan diagram di bawah tabel properti
+function ChemicalPropertiesChart({ compound }) {
+  // Data untuk properti yang dapat divisualisasikan dengan diagram
+  const chartData = [
+    {
+      name: "XLogP3",
+      value:
+        compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[1]
+          ?.Information?.[0]?.Value?.Number?.[0] || 0,
+    },
+    {
+      name: "HB Donor",
+      value:
+        compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[2]
+          ?.Information?.[0]?.Value?.Number?.[0] || 0,
+    },
+    {
+      name: "HB Acceptor",
+      value:
+        compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[3]
+          ?.Information?.[0]?.Value?.Number?.[0] || 0,
+    },
+    {
+      name: "Rot. Bonds",
+      value:
+        compound.raw?.Record?.Section?.[3]?.Section?.[0]?.Section?.[4]
+          ?.Information?.[0]?.Value?.Number?.[0] || 0,
+    },
+  ].filter((item) => item.value !== 0);
+
+  if (chartData.length === 0) return null;
+
+  return (
+    <div className="mt-6 border border-slate-200 rounded-lg p-4 bg-white">
+      <h3 className="text-sm font-medium text-slate-700 mb-4">
+        Visualisasi Properti
+      </h3>
+      <ResponsiveContainer width="100%" height={200}>
+        <BarChart data={chartData}>
+          <XAxis dataKey="name" fontSize={12} />
+          <RechartsTooltip
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                return (
+                  <div className="bg-slate-800 text-white text-xs p-2 rounded shadow">
+                    <p>{`${payload[0].name}: ${payload[0].value}`}</p>
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+          <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// Perbarui komponen SimilarCompounds
+function SimilarCompounds({ compound }) {
+  const [loading, setLoading] = useState(false);
+  const [similarCompounds, setSimilarCompounds] = useState([]);
+  const [error, setError] = useState(null);
+  const router = useRouter();
+
+  const [compareDialog, setCompareDialog] = useState(false);
+  const [compoundToCompare, setCompoundToCompare] = useState(null);
+
+  const fetchSimilarCompounds = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch(
+        `/api/obat/similar?cid=${compound.cid}&limit=6`
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || "Gagal mengambil data senyawa serupa"
+        );
+      }
+
+      const data = await response.json();
+      setSimilarCompounds(data.data || []);
+    } catch (err) {
+      console.error("Error fetching similar compounds:", err);
+      setError(err.message);
+      toast.error("Gagal mengambil data senyawa serupa");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatFormula = (formula) => {
+    if (!formula) return "N/A";
+
+    return formula.split("").map((char, index) => {
+      if (/\d/.test(char)) {
+        return <sub key={index}>{char}</sub>;
+      }
+      return char;
+    });
+  };
+
+  const startComparison = (similar) => {
+    setCompoundToCompare(similar);
+    setCompareDialog(true);
+  };
+
+  return (
+    <Card className="mt-6">
+      <CardHeader className="border-b pb-3">
+        <CardTitle className="flex items-center gap-2">
+          <div className="p-2 bg-green-50 rounded-full">
+            <MdCompare className="text-green-600 h-5 w-5" />
+          </div>
+          <span>Senyawa Serupa</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4">
+        {similarCompounds.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {similarCompounds.map((similar) => (
+              <div
+                key={similar.cid}
+                className="group cursor-pointer"
+                onClick={() => startComparison(similar)}
+              >
+                <div className="relative border border-slate-200 bg-white rounded-lg p-4 shadow-sm transition-shadow hover:shadow-md hover:border-indigo-200">
+                  <div className="absolute top-2 right-2 bg-indigo-100 text-indigo-700 text-xs font-medium px-2 py-1 rounded-full">
+                    {similar.similarity_score}% mirip
+                  </div>
+
+                  <div className="flex items-center justify-center mb-3 bg-slate-50 p-2 rounded-md">
+                    <Image
+                      src={similar.thumbnail_url}
+                      alt={similar.name}
+                      width={120}
+                      height={120}
+                      className="transition-transform group-hover:scale-105"
+                    />
+                  </div>
+
+                  <h3 className="text-sm font-medium text-slate-900 truncate mb-1">
+                    {similar.name}
+                  </h3>
+
+                  <div className="text-xs text-slate-600 mb-2">
+                    <span className="font-medium">Formula:</span>{" "}
+                    {formatFormula(similar.formula)}
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span>MW: {similar.weight}</span>
+                    <span>CID: {similar.cid}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="col-span-full flex flex-col items-center justify-center py-8 text-center">
+            <div className="p-3 bg-slate-100 rounded-full mb-3">
+              <MdOutlineScience className="h-6 w-6 text-slate-500" />
+            </div>
+            <h3 className="text-slate-700 font-medium mb-1">
+              Bandingkan dengan senyawa serupa
+            </h3>
+            <p className="text-slate-500 text-sm mb-4">
+              Lihat perbandingan properti kimia dengan senyawa yang memiliki
+              struktur serupa
+            </p>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={fetchSimilarCompounds}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin mr-1"></div>
+                  <span>Mencari...</span>
+                </>
+              ) : (
+                <>
+                  <MdOutlineCompare className="h-4 w-4" />
+                  <span>Temukan Senyawa Serupa</span>
+                </>
+              )}
+            </Button>
+            {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+          </div>
+        )}
+      </CardContent>
+
+      <Dialog open={compareDialog} onOpenChange={setCompareDialog}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MdCompare className="h-5 w-5" />
+              Perbandingan Senyawa
+            </DialogTitle>
+            <DialogClose />
+          </DialogHeader>
+
+          {compoundToCompare && (
+            <div className="py-4">
+              <div className="grid grid-cols-2 gap-6">
+                {/* Kolom kiri - Senyawa Asli */}
+                <div className="border border-slate-200 rounded-lg p-4">
+                  <div className="text-center mb-3">
+                    <h3 className="font-medium text-lg">{compound.name}</h3>
+                    <p className="text-xs text-slate-500">
+                      CID: {compound.cid}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-center mb-4">
+                    <Image
+                      src={compound.essential.structureUrl}
+                      alt={compound.name}
+                      width={180}
+                      height={180}
+                      className="bg-white p-2 border rounded-md"
+                    />
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between items-center border-b pb-1">
+                      <span className="font-medium">Formula</span>
+                      <span>
+                        {(() => {
+                          // Menggunakan logika yang sama dengan getMolecularFormula
+                          const molecularFormulaSection =
+                            compound.raw?.Record?.Section?.find(
+                              (section) =>
+                                section.TOCHeading === "Molecular Formula"
+                            );
+
+                          let formula = null;
+
+                          if (
+                            molecularFormulaSection?.Information?.[0]?.Value
+                              ?.StringWithMarkup?.[0]?.String
+                          ) {
+                            formula =
+                              molecularFormulaSection.Information[0].Value
+                                .StringWithMarkup[0].String;
+                          } else if (
+                            compound.essential.molecularFormula &&
+                            compound.essential.molecularFormula !== "N/A"
+                          ) {
+                            formula = compound.essential.molecularFormula;
+                          } else if (
+                            compound.raw?.Record?.Section?.[2]?.Section?.[2]
+                              ?.Information?.[0]?.Value?.StringWithMarkup?.[0]
+                              ?.String
+                          ) {
+                            formula =
+                              compound.raw.Record.Section[2].Section[2]
+                                .Information[0].Value.StringWithMarkup[0]
+                                .String;
+                          }
+
+                          return formula
+                            ? formatFormula(formula)
+                            : "Tidak tersedia";
+                        })()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center border-b pb-1">
+                      <span className="font-medium">Berat Molekul</span>
+                      <span>
+                        {(() => {
+                          // Menggunakan logika yang sama dengan ChemicalPropertiesTable
+                          const chemicalSection =
+                            compound.raw?.Record?.Section?.find(
+                              (section) =>
+                                section.TOCHeading ===
+                                "Chemical and Physical Properties"
+                            );
+
+                          const computedPropertiesSection =
+                            chemicalSection?.Section?.find(
+                              (section) =>
+                                section.TOCHeading === "Computed Properties"
+                            );
+
+                          const molecularWeightSection =
+                            computedPropertiesSection?.Section?.find(
+                              (section) =>
+                                section.TOCHeading === "Molecular Weight"
+                            );
+
+                          if (
+                            molecularWeightSection?.Information?.[0]?.Value
+                              ?.StringWithMarkup?.[0]?.String
+                          ) {
+                            const weight =
+                              molecularWeightSection.Information[0].Value
+                                .StringWithMarkup[0].String;
+                            const unit =
+                              molecularWeightSection.Information[0].Value
+                                .Unit || "g/mol";
+                            return `${weight} ${unit}`;
+                          } else if (
+                            compound.essential.molecularWeight &&
+                            compound.essential.molecularWeight !== "N/A"
+                          ) {
+                            return compound.essential.molecularWeight;
+                          }
+
+                          return "Tidak tersedia";
+                        })()}
+                      </span>
+                    </div>
+                    {/* XLogP3 */}
+                    <div className="flex justify-between items-center border-b pb-1">
+                      <span className="font-medium">XLogP3</span>
+                      <span>
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                          ?.Section?.[1]?.Information?.[0]?.Value
+                          ?.Number?.[0] !== undefined
+                          ? compound.raw.Record.Section[3].Section[0].Section[1]
+                              .Information[0].Value.Number[0]
+                          : "Tidak tersedia"}
+                      </span>
+                    </div>
+                    {/* HB Donor */}
+                    <div className="flex justify-between items-center border-b pb-1">
+                      <span className="font-medium">HB Donor</span>
+                      <span>
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                          ?.Section?.[2]?.Information?.[0]?.Value
+                          ?.Number?.[0] !== undefined
+                          ? compound.raw.Record.Section[3].Section[0].Section[2]
+                              .Information[0].Value.Number[0]
+                          : "Tidak tersedia"}
+                      </span>
+                    </div>
+                    {/* HB Acceptor */}
+                    <div className="flex justify-between items-center border-b pb-1">
+                      <span className="font-medium">HB Acceptor</span>
+                      <span>
+                        {compound.raw?.Record?.Section?.[3]?.Section?.[0]
+                          ?.Section?.[3]?.Information?.[0]?.Value
+                          ?.Number?.[0] !== undefined
+                          ? compound.raw.Record.Section[3].Section[0].Section[3]
+                              .Information[0].Value.Number[0]
+                          : "Tidak tersedia"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Kolom kanan - Senyawa Pembanding - biarkan seperti semula */}
+                <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                  <div className="text-center mb-3">
+                    <h3 className="font-medium text-lg">
+                      {compoundToCompare.name}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      CID: {compoundToCompare.cid}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-center mb-4">
+                    <Image
+                      src={compoundToCompare.structure_url}
+                      alt={compoundToCompare.name}
+                      width={180}
+                      height={180}
+                      className="bg-white p-2 border rounded-md"
+                    />
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between items-center border-b pb-1">
+                      <span className="font-medium">Formula</span>
+                      <span>{formatFormula(compoundToCompare.formula)}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b pb-1">
+                      <span className="font-medium">Berat Molekul</span>
+                      <span>{compoundToCompare.weight}</span>
+                    </div>
+                    {/* Tambahkan properti lain yang ingin dibandingkan */}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end mt-6">
+                <Button
+                  variant="outline"
+                  className="mr-2"
+                  onClick={() => setCompareDialog(false)}
+                >
+                  Tutup
+                </Button>
+                <Button
+                  onClick={() =>
+                    router.push(`/drug-info/${compoundToCompare.cid}`)
+                  }
+                >
+                  Lihat Detail
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }
 
