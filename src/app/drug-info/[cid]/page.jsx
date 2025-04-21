@@ -30,6 +30,7 @@ import {
   MdOpenInNew,
   MdZoomIn,
   MdOutlineEco,
+  MdOutlineLibraryBooks,
 } from "react-icons/md";
 
 // ShadCN UI Components
@@ -60,6 +61,7 @@ import ChemistryTab from "./components/tab/ChemistryTab";
 import PharmacologyTab from "./components/tab/PharmacologyTab";
 import SafetyTab from "./components/tab/SafetyTab";
 import FullContentTab from "./components/tab/FullContentTab";
+import ResearchTab from "./components/tab/ResearchTab";
 
 export default function DrugDetailPage() {
   const params = useParams();
@@ -457,6 +459,15 @@ export default function DrugDetailPage() {
               >
                 Konten Lengkap
               </Button>
+              <Button
+                variant={activeTab === "research" ? "default" : "ghost"}
+                className="justify-start"
+                onClick={() => {
+                  handleTabChange("research");
+                }}
+              >
+                Penelitian
+              </Button>
             </div>
           </SheetContent>
         </Sheet>
@@ -475,6 +486,10 @@ export default function DrugDetailPage() {
           <TabsTrigger value="pharmacology">Farmakologi & Klinis</TabsTrigger>
           <TabsTrigger value="safety">Keamanan</TabsTrigger>
           <TabsTrigger value="full">Konten Lengkap</TabsTrigger>
+          <TabsTrigger value="research" className="flex items-center gap-1">
+            <MdOutlineLibraryBooks className="h-4 w-4" />
+            <span>Penelitian</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -511,6 +526,11 @@ export default function DrugDetailPage() {
         {/* Full Content Tab */}
         <TabsContent value="full" className="space-y-6">
           <FullContentTab compound={compound} />
+        </TabsContent>
+
+        {/* Research Tab */}
+        <TabsContent value="research" className="space-y-6">
+          <ResearchTab compound={compound} />
         </TabsContent>
       </Tabs>
     </div>
@@ -569,6 +589,8 @@ function getTabName(tab) {
       return "Keamanan";
     case "full":
       return "Konten Lengkap";
+    case "research":
+      return "Penelitian";
     default:
       return "Ringkasan";
   }
