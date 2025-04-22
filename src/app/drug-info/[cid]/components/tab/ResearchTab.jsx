@@ -76,27 +76,11 @@ export default function ResearchTab({ compound }) {
   // State untuk pagination, pencarian, dan pengurutan publikasi
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(""); // Input pencarian sementara (tidak langsung dijalankan)
+  const [activeSearchQuery, setActiveSearchQuery] = useState(""); // Pencarian yang benar-benar aktif
   const [sortBy, setSortBy] = useState("year");
   const [sortOrder, setSortOrder] = useState("desc");
-  const [searchTimeout, setSearchTimeout] = useState(null);
   const [isLoadingSearch, setIsLoadingSearch] = useState(false);
-
-  // Debounce search query
-  useEffect(() => {
-    if (searchTimeout) clearTimeout(searchTimeout);
-
-    const timeout = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 500);
-
-    setSearchTimeout(timeout);
-
-    return () => {
-      if (searchTimeout) clearTimeout(searchTimeout);
-    };
-  }, [searchQuery]);
 
   // Fungsi untuk fetch data dengan parameter yang diberikan
   const fetchLiteratureData = useCallback(
@@ -104,7 +88,7 @@ export default function ResearchTab({ compound }) {
       const {
         page = currentPage,
         itemsPerPage = perPage,
-        query = debouncedSearchQuery,
+        query = activeSearchQuery, // Gunakan activeSearchQuery, bukan searchQuery
         sort = sortBy,
         order = sortOrder,
         showLoading = true,
@@ -155,11 +139,25 @@ export default function ResearchTab({ compound }) {
       compound.cid,
       currentPage,
       perPage,
-      debouncedSearchQuery,
+      activeSearchQuery, // Gunakan activeSearchQuery, bukan debouncedSearchQuery
       sortBy,
       sortOrder,
     ]
   );
+
+  // Handle untuk menjalankan pencarian
+  const handleSearch = () => {
+    setActiveSearchQuery(searchQuery); // Menetapkan query aktif
+    setCurrentPage(1); // Reset ke halaman pertama
+  };
+
+  // Handle untuk enter key
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
 
   useEffect(() => {
     async function fetchAllData() {
@@ -250,13 +248,13 @@ export default function ResearchTab({ compound }) {
     fetchAllData();
   }, [compound.cid, fetchLiteratureData]);
 
-  // Effect untuk trigger fetch saat parameter berubah
+  // Efek untuk memanggil API ketika parameter yang digunakan dalam fetch berubah
   useEffect(() => {
     if (activeTab === "publications") {
       fetchLiteratureData({ showLoading: false });
     }
   }, [
-    debouncedSearchQuery,
+    activeSearchQuery,
     sortBy,
     sortOrder,
     currentPage,
@@ -279,7 +277,7 @@ export default function ResearchTab({ compound }) {
   // Handler untuk reset pencarian
   const handleResetSearch = () => {
     setSearchQuery("");
-    setDebouncedSearchQuery("");
+    setActiveSearchQuery("");
     setCurrentPage(1);
   };
 
@@ -404,15 +402,29 @@ export default function ResearchTab({ compound }) {
             <CardContent className="space-y-4 relative">
               {/* Pencarian dan filter */}
               <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                <div className="relative flex-grow">
-                  <MdSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-                  <Input
-                    type="text"
-                    placeholder="Cari publikasi berdasarkan judul, penulis, atau jurnal..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8"
-                  />
+                <div className="relative flex-grow flex">
+                  <div className="relative flex-grow">
+                    <MdSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+                    <Input
+                      type="text"
+                      placeholder="Cari publikasi berdasarkan judul, penulis, atau jurnal..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="pl-8 rounded-r-none"
+                    />
+                  </div>
+                  <Button
+                    className="rounded-l-none"
+                    onClick={handleSearch}
+                    disabled={isLoadingSearch}
+                  >
+                    {isLoadingSearch ? (
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                    ) : (
+                      "Cari"
+                    )}
+                  </Button>
                 </div>
                 <div className="flex gap-2">
                   <Select
@@ -675,38 +687,6 @@ export default function ResearchTab({ compound }) {
                       >
                         <MdFilterList className="h-4 w-4" />
                         <span>Hapus Pencarian</span>
-                      </Button>
-                    )}
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        window.open(
-                          `https://pubchem.ncbi.nlm.nih.gov/compound/${compound.cid}#section=Literature`,
-                          "_blank"
-                        )
-                      }
-                      className="flex items-center gap-1"
-                    >
-                      <MdOpenInNew className="h-4 w-4" />
-                      <span>Lihat di PubChem</span>
-                    </Button>
-
-                    {literatureData.publicationCount > 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          window.open(
-                            `/api/obat/literature/${compound.cid}?all=true&download=true`,
-                            "_blank"
-                          )
-                        }
-                        className="flex items-center gap-1"
-                      >
-                        <MdDownload className="h-4 w-4" />
-                        <span>Unduh Semua Publikasi</span>
                       </Button>
                     )}
                   </div>
