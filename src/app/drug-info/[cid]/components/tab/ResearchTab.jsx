@@ -81,6 +81,14 @@ export default function ResearchTab({ compound }) {
   const [sortOrder, setSortOrder] = useState("desc");
   const [isLoadingSearch, setIsLoadingSearch] = useState(false);
 
+  // State untuk pagination, search, dan sorting bioaktivitas
+  const [bioassayPage, setBioassayPage] = useState(1);
+  const [bioassayPerPage, setBioassayPerPage] = useState(10);
+  const [bioassaySearch, setBioassaySearch] = useState("");
+  const [bioassayActiveSortBy, setBioassayActiveSortBy] = useState("AID");
+  const [bioassayActiveSortOrder, setBioassayActiveSortOrder] = useState("asc");
+  const [isLoadingBioassay, setIsLoadingBioassay] = useState(false);
+
   // Fungsi untuk fetch data dengan parameter yang diberikan
   const fetchLiteratureData = useCallback(
     async (options = {}) => {
@@ -144,6 +152,73 @@ export default function ResearchTab({ compound }) {
     ]
   );
 
+  // Fungsi untuk mengambil data bioaktivitas dengan parameter yang diberikan - PERBAIKAN
+  const fetchBioactivityData = useCallback(
+    async (options = {}) => {
+      const {
+        page = bioassayPage,
+        pageSize = bioassayPerPage,
+        search = null, // Ubah default search menjadi null
+        sortBy = bioassayActiveSortBy,
+        sortOrder = bioassayActiveSortOrder,
+        showLoading = true,
+        forceSearch = false, // Parameter untuk menentukan apakah search digunakan
+      } = options;
+
+      try {
+        if (showLoading) {
+          setLoading((prev) => ({ ...prev, bioactivity: true }));
+        } else {
+          setIsLoadingBioassay(true);
+        }
+
+        // Bangun query parameters
+        const params = new URLSearchParams({
+          page,
+          pageSize,
+          sortBy,
+          sortOrder,
+        });
+
+        // PERBAIKAN: Hanya tambahkan parameter search jika forceSearch adalah true
+        // dan search bukan null/undefined/string kosong
+        const searchTerm = forceSearch ? search || bioassaySearch : null;
+        if (searchTerm && searchTerm.trim() !== "") {
+          params.append("search", searchTerm);
+        }
+
+        const response = await axios.get(
+          `/api/obat/bioactivity/${compound.cid}?${params.toString()}`
+        );
+
+        setBioactivityData(response.data);
+      } catch (err) {
+        console.error("Error fetching bioactivity data:", err);
+        setErrors((prev) => ({
+          ...prev,
+          bioactivity:
+            err.response?.data?.error ||
+            err.message ||
+            "Failed to fetch bioactivity data",
+        }));
+      } finally {
+        if (showLoading) {
+          setLoading((prev) => ({ ...prev, bioactivity: false }));
+        } else {
+          setIsLoadingBioassay(false);
+        }
+      }
+    },
+    [
+      compound.cid,
+      bioassayPage,
+      bioassayPerPage,
+      bioassayActiveSortBy,
+      bioassayActiveSortOrder,
+      // HAPUS bioassaySearch dari dependencies array
+    ]
+  );
+
   // Handle untuk menjalankan pencarian
   const handleSearch = () => {
     setActiveSearchQuery(searchQuery); // Menetapkan query aktif
@@ -156,6 +231,37 @@ export default function ResearchTab({ compound }) {
       e.preventDefault();
       handleSearch();
     }
+  };
+
+  // Handle untuk mengubah pagination bioassay
+  const handleBioassayPageChange = (page) => {
+    setBioassayPage(page);
+  };
+
+  // Handler untuk menjalankan pencarian bioassay (hanya dipanggil saat klik tombol atau enter)
+  const handleBioassaySearch = () => {
+    setBioassayPage(1); // Reset ke halaman pertama
+    fetchBioactivityData({
+      page: 1,
+      search: bioassaySearch, // Eksplisit pass nilai search saat ini
+      showLoading: false,
+      forceSearch: true, // Nyalakan flag untuk memaksa menggunakan search term
+    });
+  };
+
+  // Handler untuk perubahan pengurutan bioassay
+  const handleBioassaySortChange = (sortBy) => {
+    // Jika mengklik kolom yang sama, toggle arah pengurutan
+    if (sortBy === bioassayActiveSortBy) {
+      setBioassayActiveSortOrder(
+        bioassayActiveSortOrder === "asc" ? "desc" : "asc"
+      );
+    } else {
+      // Jika mengklik kolom yang berbeda, tetapkan kolom baru dan reset ke ascending
+      setBioassayActiveSortBy(sortBy);
+      setBioassayActiveSortOrder("asc");
+    }
+    setBioassayPage(1); // Reset ke halaman pertama
   };
 
   useEffect(() => {
@@ -171,35 +277,17 @@ export default function ResearchTab({ compound }) {
       // Fetch literature data
       fetchLiteratureData();
 
-      // Fetch bioactivity data
-      fetchBioactivityData();
+      // Fetch bioactivity data, tanpa menyertakan search
+      fetchBioactivityData({
+        forceSearch: false, // PENTING: set false pada load awal
+        search: null, // Eksplisit set null untuk memastikan tidak ada pencarian
+      });
 
       // Fetch classification data
       fetchClassificationData();
 
       // Fetch interactions data
       fetchInteractionsData();
-    }
-
-    async function fetchBioactivityData() {
-      try {
-        setLoading((prev) => ({ ...prev, bioactivity: true }));
-        const response = await axios.get(
-          `/api/obat/bioactivity/${compound.cid}`
-        );
-        setBioactivityData(response.data);
-      } catch (err) {
-        console.error("Error fetching bioactivity data:", err);
-        setErrors((prev) => ({
-          ...prev,
-          bioactivity:
-            err.response?.data?.error ||
-            err.message ||
-            "Failed to fetch bioactivity data",
-        }));
-      } finally {
-        setLoading((prev) => ({ ...prev, bioactivity: false }));
-      }
     }
 
     async function fetchClassificationData() {
@@ -245,7 +333,7 @@ export default function ResearchTab({ compound }) {
     }
 
     fetchAllData();
-  }, [compound.cid, fetchLiteratureData]);
+  }, [compound.cid, fetchLiteratureData, fetchBioactivityData]);
 
   // Efek untuk memanggil API ketika parameter yang digunakan dalam fetch berubah
   useEffect(() => {
@@ -260,6 +348,25 @@ export default function ResearchTab({ compound }) {
     perPage,
     fetchLiteratureData,
     activeTab,
+  ]);
+
+  // Efek untuk memanggil API ketika parameter bioassay berubah (KECUALI search)
+  useEffect(() => {
+    if (activeTab === "bioactivity") {
+      // Jangan paksa pencarian saat parameter lain berubah
+      fetchBioactivityData({
+        showLoading: false,
+        forceSearch: false, // PENTING: set false agar tidak mencoba menggunakan search term
+      });
+    }
+  }, [
+    bioassayPage,
+    bioassayPerPage,
+    bioassayActiveSortBy,
+    bioassayActiveSortOrder,
+    fetchBioactivityData,
+    activeTab,
+    // bioassaySearch dihapus dari dependencies
   ]);
 
   // Handler untuk perubahan halaman
@@ -740,14 +847,12 @@ export default function ResearchTab({ compound }) {
                 </Alert>
               ) : loading.bioactivity ? (
                 <div className="flex flex-col items-center justify-center py-8">
-                  <Skeleton className="h-20 w-20 rounded-full mb-4" />
-                  <Skeleton className="h-4 w-40 mb-2" />
-                  <Skeleton className="h-4 w-60" />
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mb-4"></div>
+                  <p className="text-slate-500">Memuat data bioaktivitas...</p>
                 </div>
-              ) : bioactivityData?.hasBioactivityData &&
-                (bioactivityData?.bioactivity?.activeAssayCount > 0 ||
-                  bioactivityData?.bioactivity?.totalAssayCount > 0) ? (
+              ) : bioactivityData?.hasBioactivityData ? (
                 <div className="space-y-6">
+                  {/* Summary Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                       <h3 className="font-medium text-green-800 text-sm">
@@ -782,6 +887,7 @@ export default function ResearchTab({ compound }) {
                     </div>
                   </div>
 
+                  {/* Bioactivity Summary */}
                   {bioactivityData.bioactivity.bioactiveSummary && (
                     <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                       <p className="text-sm text-slate-700">
@@ -790,121 +896,206 @@ export default function ResearchTab({ compound }) {
                     </div>
                   )}
 
-                  {bioactivityData.bioactivity.targets &&
-                    bioactivityData.bioactivity.targets.length > 0 && (
-                      <div>
-                        <h3 className="font-medium text-slate-700 mb-3">
-                          Target Protein Utama
-                        </h3>
-
-                        <div className="overflow-auto border border-slate-200 rounded-lg">
-                          <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-slate-50">
-                              <tr>
-                                <th className="px-3 py-2 text-xs font-medium text-slate-600 text-left">
-                                  Target
-                                </th>
-                                <th className="px-3 py-2 text-xs font-medium text-slate-600 text-left">
-                                  Gene ID
-                                </th>
-                                <th className="px-3 py-2 text-xs font-medium text-slate-600 text-left">
-                                  Pengujian Aktif
-                                </th>
-                                <th className="px-3 py-2 text-xs font-medium text-slate-600 text-left">
-                                  Aktivitas
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-slate-200">
-                              {bioactivityData.bioactivity.targets.map(
-                                (target, idx) => (
-                                  <tr key={idx} className="hover:bg-slate-50">
-                                    <td className="px-3 py-2 text-xs text-slate-800">
-                                      {target.geneSymbol ? (
-                                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-none">
-                                          {target.geneSymbol}
-                                        </Badge>
-                                      ) : null}
-                                      <div className="text-xs mt-1">
-                                        {target.name}
-                                      </div>
-                                    </td>
-                                    <td className="px-3 py-2 text-xs text-slate-600">
-                                      {target.geneID || "-"}
-                                    </td>
-                                    <td className="px-3 py-2 text-xs text-slate-600">
-                                      {target.activeAssayCount || 0} /{" "}
-                                      {target.totalAssayCount || 0}
-                                    </td>
-                                    <td className="px-3 py-2">
-                                      {target.activityValue ? (
-                                        <Badge
-                                          variant="outline"
-                                          className="bg-green-50 text-green-700"
-                                        >
-                                          {target.activityType || "uM"}:{" "}
-                                          {target.activityValue}
-                                        </Badge>
-                                      ) : (
-                                        <span className="text-xs text-slate-500">
-                                          -
-                                        </span>
-                                      )}
-                                    </td>
-                                  </tr>
-                                )
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-
-                        <div className="text-center mt-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              window.open(
-                                `https://pubchem.ncbi.nlm.nih.gov/compound/${compound.cid}#section=BioAssay-Results`,
-                                "_blank"
-                              )
-                            }
-                          >
-                            Lihat Data Bioaktivitas Lengkap
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
+                  {/* Bioassay Section with Search, Sort, and Pagination */}
                   {bioactivityData.bioactivity.assays &&
                     bioactivityData.bioactivity.assays.length > 0 && (
-                      <div>
+                      <div className="mt-8">
                         <h3 className="font-medium text-slate-700 mb-3">
-                          Ringkasan Pengujian (Assay)
+                          Data Bioassay (Pengujian)
                         </h3>
-                        <div className="text-xs text-slate-500 mb-2">
-                          Menampilkan{" "}
-                          {bioactivityData.bioactivity.assays.length} dari{" "}
-                          {bioactivityData.bioactivity.totalAssayCount}{" "}
-                          pengujian
+
+                        {/* Search and Sort Controls */}
+                        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                          <div className="relative flex-grow flex">
+                            <div className="relative flex-grow">
+                              <MdSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+                              <Input
+                                type="text"
+                                placeholder="Cari bioassay..."
+                                value={bioassaySearch}
+                                onChange={(e) =>
+                                  setBioassaySearch(e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleBioassaySearch();
+                                  }
+                                }}
+                                className="pl-8 rounded-r-none"
+                              />
+                            </div>
+                            <Button
+                              className="rounded-l-none"
+                              onClick={handleBioassaySearch}
+                              disabled={isLoadingBioassay}
+                            >
+                              {isLoadingBioassay ? (
+                                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                              ) : (
+                                "Cari"
+                              )}
+                            </Button>
+                          </div>
+                          <div className="flex gap-2">
+                            <Select
+                              value={bioassayActiveSortBy}
+                              onValueChange={(value) => {
+                                setBioassayActiveSortBy(value);
+                                setBioassayActiveSortOrder("asc");
+                                setBioassayPage(1);
+                              }}
+                            >
+                              <SelectTrigger className="w-[150px]">
+                                <SelectValue placeholder="Urutkan berdasarkan" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="AID">
+                                  BioAssay AID
+                                </SelectItem>
+                                <SelectItem value="SID">
+                                  Substance SID
+                                </SelectItem>
+                                <SelectItem value="Activity Type">
+                                  Activity Type
+                                </SelectItem>
+                                <SelectItem value="Activity Outcome">
+                                  Activity Outcome
+                                </SelectItem>
+                                <SelectItem value="Activity Value [uM]">
+                                  Activity Value
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setBioassayActiveSortOrder(
+                                  bioassayActiveSortOrder === "asc"
+                                    ? "desc"
+                                    : "asc"
+                                );
+                                setBioassayPage(1);
+                              }}
+                              title={
+                                bioassayActiveSortOrder === "asc"
+                                  ? "Urutkan menurun"
+                                  : "Urutkan menaik"
+                              }
+                              className="flex-shrink-0"
+                            >
+                              <MdSort
+                                className={`h-4 w-4 ${
+                                  bioassayActiveSortOrder === "asc"
+                                    ? "transform rotate-180"
+                                    : ""
+                                }`}
+                              />
+                            </Button>
+                          </div>
                         </div>
 
-                        <div className="overflow-auto border border-slate-200 rounded-lg max-h-[300px]">
+                        {/* Info text about search results */}
+                        <div className="text-sm text-slate-500 mb-3">
+                          Menampilkan{" "}
+                          {bioactivityData.pagination
+                            ? `${
+                                (bioactivityData.pagination.page - 1) *
+                                  bioactivityData.pagination.pageSize +
+                                1
+                              } - ${Math.min(
+                                bioactivityData.pagination.page *
+                                  bioactivityData.pagination.pageSize,
+                                bioactivityData.pagination.totalItems
+                              )}`
+                            : bioactivityData.bioactivity.assays.length}{" "}
+                          dari{" "}
+                          {bioactivityData.pagination?.totalItems ||
+                            bioactivityData.bioactivity.totalAssayCount}{" "}
+                          pengujian
+                          {bioactivityData.search &&
+                            ` untuk pencarian "${bioactivityData.search}"`}
+                        </div>
+
+                        {/* Overlay loading untuk pencarian */}
+                        {isLoadingBioassay && (
+                          <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-10 rounded-md">
+                            <div className="bg-white/80 p-4 rounded-lg shadow-sm flex items-center gap-3">
+                              <div className="animate-spin rounded-full h-5 w-5 border-2 border-green-500 border-t-transparent"></div>
+                              <span className="text-slate-700">
+                                Memuat bioassay...
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Bioassay table */}
+                        <div className="overflow-auto border border-slate-200 rounded-lg max-h-[400px]">
                           <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-slate-50 sticky top-0">
+                            <thead className="bg-slate-50 sticky top-0 z-10">
                               <tr>
-                                <th className="px-3 py-2 text-xs font-medium text-slate-600 text-left">
-                                  AID
+                                <th
+                                  className="px-3 py-2 text-xs font-medium text-slate-600 text-left cursor-pointer hover:bg-slate-100"
+                                  onClick={() =>
+                                    handleBioassaySortChange("AID")
+                                  }
+                                >
+                                  <div className="flex items-center">
+                                    AID
+                                    {bioassayActiveSortBy === "AID" && (
+                                      <span className="ml-1">
+                                        {bioassayActiveSortOrder === "asc"
+                                          ? "↑"
+                                          : "↓"}
+                                      </span>
+                                    )}
+                                  </div>
+                                </th>
+                                <th
+                                  className="px-3 py-2 text-xs font-medium text-slate-600 text-left cursor-pointer hover:bg-slate-100"
+                                  onClick={() =>
+                                    handleBioassaySortChange("Activity Outcome")
+                                  }
+                                >
+                                  <div className="flex items-center">
+                                    Hasil
+                                    {bioassayActiveSortBy ===
+                                      "Activity Outcome" && (
+                                      <span className="ml-1">
+                                        {bioassayActiveSortOrder === "asc"
+                                          ? "↑"
+                                          : "↓"}
+                                      </span>
+                                    )}
+                                  </div>
+                                </th>
+                                <th
+                                  className="px-3 py-2 text-xs font-medium text-slate-600 text-left cursor-pointer hover:bg-slate-100"
+                                  onClick={() =>
+                                    handleBioassaySortChange(
+                                      "Activity Value [uM]"
+                                    )
+                                  }
+                                >
+                                  <div className="flex items-center">
+                                    Nilai (uM)
+                                    {bioassayActiveSortBy ===
+                                      "Activity Value [uM]" && (
+                                      <span className="ml-1">
+                                        {bioassayActiveSortOrder === "asc"
+                                          ? "↑"
+                                          : "↓"}
+                                      </span>
+                                    )}
+                                  </div>
                                 </th>
                                 <th className="px-3 py-2 text-xs font-medium text-slate-600 text-left">
-                                  Hasil
+                                  Nama Assay
                                 </th>
-                                {bioactivityData.bioactivity.assays[0][
-                                  "Assay Name"
-                                ] && (
-                                  <th className="px-3 py-2 text-xs font-medium text-slate-600 text-left">
-                                    Nama Assay
-                                  </th>
-                                )}
+                                <th className="px-3 py-2 text-xs font-medium text-slate-600 text-left">
+                                  Detail
+                                </th>
                               </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-slate-200">
@@ -912,26 +1103,21 @@ export default function ResearchTab({ compound }) {
                                 (assay, idx) => (
                                   <tr key={idx} className="hover:bg-slate-50">
                                     <td className="px-3 py-2 text-xs text-slate-600">
-                                      {assay.AID || assay.aid || "-"}
+                                      {assay["AID"] || "-"}
                                     </td>
                                     <td className="px-3 py-2">
-                                      {assay["Activity Outcome"] ||
-                                      assay.activity ? (
+                                      {assay["Activity Outcome"] ? (
                                         <Badge
                                           variant="outline"
                                           className={
-                                            (
-                                              assay["Activity Outcome"] ||
-                                              assay.activity
-                                            )
+                                            assay["Activity Outcome"]
                                               .toLowerCase()
                                               .includes("active")
                                               ? "bg-green-50 text-green-700"
                                               : "bg-slate-50 text-slate-700"
                                           }
                                         >
-                                          {assay["Activity Outcome"] ||
-                                            assay.activity}
+                                          {assay["Activity Outcome"]}
                                         </Badge>
                                       ) : (
                                         <span className="text-xs text-slate-500">
@@ -939,37 +1125,160 @@ export default function ResearchTab({ compound }) {
                                         </span>
                                       )}
                                     </td>
-                                    {bioactivityData.bioactivity.assays[0][
-                                      "Assay Name"
-                                    ] && (
-                                      <td className="px-3 py-2 text-xs text-slate-800">
-                                        {assay["Assay Name"] || "-"}
-                                      </td>
-                                    )}
+                                    <td className="px-3 py-2 text-xs text-slate-600">
+                                      {assay["Activity Value [uM]"] || "-"}
+                                    </td>
+                                    <td className="px-3 py-2 text-xs text-slate-800 max-w-[250px] truncate">
+                                      {assay["Assay Name"] || "-"}
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 text-xs"
+                                        onClick={() => {
+                                          window.open(
+                                            `/api/obat/bioactivity/${compound.cid}?aid=${assay["AID"]}`,
+                                            "_blank"
+                                          );
+                                        }}
+                                      >
+                                        <MdOpenInNew className="mr-1 h-3 w-3" />
+                                        Detail
+                                      </Button>
+                                    </td>
                                   </tr>
                                 )
                               )}
                             </tbody>
                           </table>
                         </div>
-                      </div>
-                    )}
 
-                  {/* Show original data if available for debugging */}
-                  {bioactivityData.bioactivity.originalData &&
-                    process.env.NODE_ENV === "development" && (
-                      <details className="mt-8 border p-2 rounded text-xs">
-                        <summary className="cursor-pointer text-slate-500">
-                          Raw data (development only)
-                        </summary>
-                        <pre className="mt-2 bg-slate-50 p-4 rounded overflow-auto max-h-[400px]">
-                          {JSON.stringify(
-                            bioactivityData.bioactivity.originalData,
-                            null,
-                            2
+                        {/* Pagination */}
+                        {bioactivityData.pagination &&
+                          bioactivityData.pagination.totalPages > 1 && (
+                            <div className="mt-4">
+                              <div className="flex justify-between items-center mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-slate-500">
+                                    Tampilkan:
+                                  </span>
+                                  <Select
+                                    value={bioassayPerPage.toString()}
+                                    onValueChange={(value) => {
+                                      setBioassayPerPage(parseInt(value));
+                                      setBioassayPage(1);
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-[80px] h-8">
+                                      <SelectValue
+                                        placeholder={bioassayPerPage}
+                                      />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="10">10</SelectItem>
+                                      <SelectItem value="20">20</SelectItem>
+                                      <SelectItem value="50">50</SelectItem>
+                                      <SelectItem value="100">100</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                <div className="text-sm text-slate-500">
+                                  Halaman {bioactivityData.pagination.page} dari{" "}
+                                  {bioactivityData.pagination.totalPages}
+                                </div>
+                              </div>
+
+                              <Pagination>
+                                <PaginationContent>
+                                  <PaginationItem>
+                                    <PaginationPrevious
+                                      href="#"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        if (
+                                          bioactivityData.pagination.hasPrevPage
+                                        ) {
+                                          handleBioassayPageChange(
+                                            bioactivityData.pagination.page - 1
+                                          );
+                                        }
+                                      }}
+                                      className={
+                                        !bioactivityData.pagination.hasPrevPage
+                                          ? "pointer-events-none opacity-50"
+                                          : ""
+                                      }
+                                    />
+                                  </PaginationItem>
+
+                                  {generatePaginationItems(
+                                    bioactivityData.pagination.page,
+                                    bioactivityData.pagination.totalPages
+                                  ).map((item, index) => (
+                                    <PaginationItem key={index}>
+                                      {item === "ellipsis" ? (
+                                        <PaginationEllipsis />
+                                      ) : (
+                                        <PaginationLink
+                                          href="#"
+                                          isActive={
+                                            item ===
+                                            bioactivityData.pagination.page
+                                          }
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            handleBioassayPageChange(item);
+                                          }}
+                                        >
+                                          {item}
+                                        </PaginationLink>
+                                      )}
+                                    </PaginationItem>
+                                  ))}
+
+                                  <PaginationItem>
+                                    <PaginationNext
+                                      href="#"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        if (
+                                          bioactivityData.pagination.hasNextPage
+                                        ) {
+                                          handleBioassayPageChange(
+                                            bioactivityData.pagination.page + 1
+                                          );
+                                        }
+                                      }}
+                                      className={
+                                        !bioactivityData.pagination.hasNextPage
+                                          ? "pointer-events-none opacity-50"
+                                          : ""
+                                      }
+                                    />
+                                  </PaginationItem>
+                                </PaginationContent>
+                              </Pagination>
+                            </div>
                           )}
-                        </pre>
-                      </details>
+
+                        <div className="text-center mt-6">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              window.open(
+                                `https://pubchem.ncbi.nlm.nih.gov/compound/${compound.cid}#section=BioAssay-Results`,
+                                "_blank"
+                              );
+                            }}
+                          >
+                            <MdOpenInNew className="mr-1 h-4 w-4" />
+                            Lihat di PubChem
+                          </Button>
+                        </div>
+                      </div>
                     )}
                 </div>
               ) : (

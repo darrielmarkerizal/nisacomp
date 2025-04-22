@@ -16,7 +16,20 @@ export async function GET(request, { params }) {
       { status: 400 }
     );
   } else {
-    return await getBioactivityByCID(cid);
+    // Parameter tambahan untuk pagination, search, dan sorting
+    const page = parseInt(searchParams.get("page") || "1");
+    const pageSize = parseInt(searchParams.get("pageSize") || "50");
+    const search = searchParams.get("search") || "";
+    const sortBy = searchParams.get("sortBy") || "AID";
+    const sortOrder = searchParams.get("sortOrder") || "asc";
+
+    return await getBioactivityByCID(cid, {
+      page,
+      pageSize,
+      search,
+      sortBy,
+      sortOrder,
+    });
   }
 }
 
@@ -115,8 +128,11 @@ async function getAssaySummary(aid) {
   }
 }
 
-// Fungsi untuk mengambil bioaktivitas berdasarkan CID (kode yang ada sebelumnya)
-async function getBioactivityByCID(cid) {
+// Fungsi untuk mengambil bioaktivitas berdasarkan CID dengan pagination, search, dan sorting
+async function getBioactivityByCID(
+  cid,
+  { page, pageSize, search, sortBy, sortOrder }
+) {
   // Pastikan CID adalah angka valid
   const cidNum = parseInt(cid);
   if (isNaN(cidNum) || cidNum <= 0) {
@@ -153,7 +169,7 @@ async function getBioactivityByCID(cid) {
 
       // Hitung jumlah assay aktif
       let activeAssayCount = 0;
-      const processedAssays = [];
+      let processedAssays = [];
       const uniqueTargets = new Set();
       const targetDetails = {};
 
@@ -338,6 +354,64 @@ async function getBioactivityByCID(cid) {
         };
       });
 
+      // Implementasi pencarian
+      if (search && search.trim() !== "") {
+        const searchLower = search.toLowerCase();
+        processedAssays = processedAssays.filter((assay) => {
+          return Object.entries(assay).some(([key, value]) => {
+            if (value === null || value === undefined) return false;
+            return String(value).toLowerCase().includes(searchLower);
+          });
+        });
+      }
+
+      // Implementasi sorting
+      const getSortValue = (item, key) => {
+        const value = item[key];
+        // Handle nilai khusus untuk kolom activity value yang mungkin berupa string seperti "> 100"
+        if (key === "Activity Value [uM]" && typeof value === "string") {
+          // Ekstrak angka dari string seperti "> 100" atau "< 0.1"
+          const numMatch = value.match(/[0-9.]+/);
+          return numMatch ? parseFloat(numMatch[0]) : -Infinity;
+        }
+
+        // Return nilai original untuk tipe data lainnya
+        return value === null
+          ? sortOrder === "asc"
+            ? Infinity
+            : -Infinity
+          : value;
+      };
+
+      // Pengurutan data
+      processedAssays.sort((a, b) => {
+        const valueA = getSortValue(a, sortBy);
+        const valueB = getSortValue(b, sortBy);
+
+        // Handle perbandingan string
+        if (typeof valueA === "string" && typeof valueB === "string") {
+          return sortOrder === "asc"
+            ? valueA.localeCompare(valueB)
+            : valueB.localeCompare(valueA);
+        }
+
+        // Handle perbandingan numerik
+        return sortOrder === "asc"
+          ? valueA > valueB
+            ? 1
+            : -1
+          : valueA < valueB
+            ? 1
+            : -1;
+      });
+
+      // Implementasi pagination
+      const totalItems = processedAssays.length;
+      const totalPages = Math.ceil(totalItems / pageSize);
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = Math.min(startIndex + pageSize, totalItems);
+      const paginatedAssays = processedAssays.slice(startIndex, endIndex);
+
       // Siapkan response dengan format yang diharapkan, termasuk originalResponse
       return NextResponse.json({
         cid: cidNum.toString(),
@@ -346,8 +420,19 @@ async function getBioactivityByCID(cid) {
           totalAssayCount,
           activeTargetCount: uniqueTargets.size,
           targets: targetsArray,
-          assays: processedAssays.slice(0, 50), // Batasi ke 50 assay pertama untuk menghindari response terlalu besar
+          assays: paginatedAssays, // Data yang sudah dipaginasi
         },
+        pagination: {
+          page,
+          pageSize,
+          totalItems,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+        search: search || null,
+        sortBy,
+        sortOrder,
         hasBioactivityData: totalAssayCount > 0,
         rawData: originalResponse, // Menambahkan seluruh data asli
       });
@@ -394,6 +479,14 @@ async function getBioactivityByCID(cid) {
               bioactiveSummary: bioactivityInfo.summary,
             },
             hasBioactivityData: assayIds.length > 0,
+            pagination: {
+              page: 1,
+              pageSize: assayIds.length,
+              totalItems: assayIds.length,
+              totalPages: 1,
+              hasNextPage: false,
+              hasPrevPage: false,
+            },
             rawData: assayListResponse.data, // Menambahkan data mentah
           });
         }
@@ -415,6 +508,14 @@ async function getBioactivityByCID(cid) {
         hasBioactivityData:
           bioactivityInfo.totalAssayCount > 0 ||
           bioactivityInfo.summary !== null,
+        pagination: {
+          page: 1,
+          pageSize: 0,
+          totalItems: 0,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
         rawData: pugViewResponse.data, // Menambahkan data mentah
       });
     }
@@ -436,6 +537,14 @@ async function getBioactivityByCID(cid) {
           bioactiveSummary: null,
         },
         hasBioactivityData: false,
+        pagination: {
+          page: 1,
+          pageSize: 0,
+          totalItems: 0,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
         message:
           "Terjadi kesalahan saat mengambil data bioaktivitas: " +
           error.message,
