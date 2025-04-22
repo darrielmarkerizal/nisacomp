@@ -90,6 +90,15 @@ export async function GET(request, { params }) {
               activeAssayCount: 0,
               totalAssayCount: 0,
               activityValues: [],
+              aids: [],
+              sids: [],
+              pmids: [],
+              activityOutcomes: [],
+              targetGI: null,
+              activityNames: [],
+              assayNames: [],
+              assayTypes: [],
+              rnai: [],
             };
           }
 
@@ -114,6 +123,75 @@ export async function GET(request, { params }) {
           // Perbarui nama target jika tersedia
           if (assayData["Assay Name"]) {
             targetDetails[geneId].name = assayData["Assay Name"];
+          }
+
+          // Tambahkan kolom-kolom original ke dalam detail target
+          if (
+            assayData["AID"] &&
+            !targetDetails[geneId].aids.includes(assayData["AID"])
+          ) {
+            targetDetails[geneId].aids.push(assayData["AID"]);
+          }
+
+          if (
+            assayData["SID"] &&
+            !targetDetails[geneId].sids.includes(assayData["SID"])
+          ) {
+            targetDetails[geneId].sids.push(assayData["SID"]);
+          }
+
+          if (
+            assayData["PubMed ID"] &&
+            !targetDetails[geneId].pmids.includes(assayData["PubMed ID"])
+          ) {
+            targetDetails[geneId].pmids.push(assayData["PubMed ID"]);
+          }
+
+          if (
+            assayData["Activity Outcome"] &&
+            !targetDetails[geneId].activityOutcomes.includes(
+              assayData["Activity Outcome"]
+            )
+          ) {
+            targetDetails[geneId].activityOutcomes.push(
+              assayData["Activity Outcome"]
+            );
+          }
+
+          if (assayData["Target GI"]) {
+            targetDetails[geneId].targetGI = assayData["Target GI"];
+          }
+
+          if (
+            assayData["Activity Name"] &&
+            !targetDetails[geneId].activityNames.includes(
+              assayData["Activity Name"]
+            )
+          ) {
+            targetDetails[geneId].activityNames.push(
+              assayData["Activity Name"]
+            );
+          }
+
+          if (
+            assayData["Assay Name"] &&
+            !targetDetails[geneId].assayNames.includes(assayData["Assay Name"])
+          ) {
+            targetDetails[geneId].assayNames.push(assayData["Assay Name"]);
+          }
+
+          if (
+            assayData["Assay Type"] &&
+            !targetDetails[geneId].assayTypes.includes(assayData["Assay Type"])
+          ) {
+            targetDetails[geneId].assayTypes.push(assayData["Assay Type"]);
+          }
+
+          if (
+            assayData["RNAi"] &&
+            !targetDetails[geneId].rnai.includes(assayData["RNAi"])
+          ) {
+            targetDetails[geneId].rnai.push(assayData["RNAi"]);
           }
         }
       });
@@ -142,10 +220,20 @@ export async function GET(request, { params }) {
           totalAssayCount: target.totalAssayCount,
           activityValue: activityValue,
           activityType: "uM", // Default untuk nilai ini
+          // Tambahkan kolom original ke respons
+          aids: target.aids,
+          sids: target.sids,
+          pmids: target.pmids,
+          activityOutcomes: target.activityOutcomes,
+          targetGI: target.targetGI,
+          activityNames: target.activityNames,
+          assayNames: target.assayNames,
+          assayTypes: target.assayTypes,
+          rnai: target.rnai,
         };
       });
 
-      // Siapkan response dengan format yang diharapkan
+      // Siapkan response dengan format yang diharapkan, termasuk originalResponse
       return NextResponse.json({
         cid: cidNum.toString(),
         bioactivity: {
@@ -154,9 +242,9 @@ export async function GET(request, { params }) {
           activeTargetCount: uniqueTargets.size,
           targets: targetsArray,
           assays: processedAssays.slice(0, 50), // Batasi ke 50 assay pertama untuk menghindari response terlalu besar
-          originalData: originalResponse, // Ini akan menyertakan semua data asli dari PubChem
         },
         hasBioactivityData: totalAssayCount > 0,
+        rawData: originalResponse, // Menambahkan seluruh data asli
       });
     } else {
       // Jika tidak ada data assay yang tersedia, coba dapatkan informasi melalui PUG View API
@@ -201,6 +289,7 @@ export async function GET(request, { params }) {
               bioactiveSummary: bioactivityInfo.summary,
             },
             hasBioactivityData: assayIds.length > 0,
+            rawData: assayListResponse.data, // Menambahkan data mentah
           });
         }
       } catch (assayErr) {
@@ -221,6 +310,7 @@ export async function GET(request, { params }) {
         hasBioactivityData:
           bioactivityInfo.totalAssayCount > 0 ||
           bioactivityInfo.summary !== null,
+        rawData: pugViewResponse.data, // Menambahkan data mentah
       });
     }
   } catch (error) {
