@@ -62,6 +62,7 @@ import PharmacologyTab from "./components/tab/PharmacologyTab";
 import SafetyTab from "./components/tab/SafetyTab";
 import FullContentTab from "./components/tab/FullContentTab";
 import ResearchTab from "./components/tab/ResearchTab";
+import PublicationsTab from "./components/tab/PublicationsTab";
 
 export default function DrugDetailPage() {
   const params = useParams();
@@ -412,6 +413,7 @@ export default function DrugDetailPage() {
               <MdKeyboardArrowDown className="ml-2 h-4 w-4" />
             </Button>
           </SheetTrigger>
+          // Di dalam SheetContent (menu mobile)
           <SheetContent side="bottom" className="h-[40vh]">
             <div className="grid gap-1 py-2">
               <Button
@@ -451,13 +453,16 @@ export default function DrugDetailPage() {
                 Keamanan
               </Button>
               <Button
-                variant={activeTab === "full" ? "default" : "ghost"}
+                variant={activeTab === "publications" ? "default" : "ghost"}
                 className="justify-start"
                 onClick={() => {
-                  handleTabChange("full");
+                  handleTabChange("publications");
                 }}
               >
-                Konten Lengkap
+                <div className="flex items-center">
+                  <MdOutlineLibraryBooks className="mr-2 h-4 w-4" />
+                  Publikasi
+                </div>
               </Button>
               <Button
                 variant={activeTab === "research" ? "default" : "ghost"}
@@ -466,7 +471,19 @@ export default function DrugDetailPage() {
                   handleTabChange("research");
                 }}
               >
-                Penelitian
+                <div className="flex items-center">
+                  <MdOutlineBiotech className="mr-2 h-4 w-4" />
+                  Bioaktivitas
+                </div>
+              </Button>
+              <Button
+                variant={activeTab === "full" ? "default" : "ghost"}
+                className="justify-start"
+                onClick={() => {
+                  handleTabChange("full");
+                }}
+              >
+                Konten Lengkap
               </Button>
             </div>
           </SheetContent>
@@ -485,11 +502,13 @@ export default function DrugDetailPage() {
           <TabsTrigger value="chemistry">Kimia</TabsTrigger>
           <TabsTrigger value="pharmacology">Farmakologi & Klinis</TabsTrigger>
           <TabsTrigger value="safety">Keamanan</TabsTrigger>
-          <TabsTrigger value="full">Konten Lengkap</TabsTrigger>
-          <TabsTrigger value="research" className="flex items-center gap-1">
-            <MdOutlineLibraryBooks className="h-4 w-4" />
-            <span>Penelitian</span>
+          <TabsTrigger value="publications" className="flex items-center gap-1">
+            <span>Publikasi</span>
           </TabsTrigger>
+          <TabsTrigger value="research" className="flex items-center gap-1">
+            <span>Bioaktivitas</span>
+          </TabsTrigger>
+          <TabsTrigger value="full">Konten Lengkap</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -531,6 +550,10 @@ export default function DrugDetailPage() {
         {/* Research Tab */}
         <TabsContent value="research" className="space-y-6">
           <ResearchTab compound={compound} />
+        </TabsContent>
+
+        <TabsContent value="publications" className="space-y-6">
+          <PublicationsTab compound={compound} />
         </TabsContent>
       </Tabs>
     </div>
@@ -587,10 +610,12 @@ function getTabName(tab) {
       return "Farmakologi & Klinis";
     case "safety":
       return "Keamanan";
+    case "publications":
+      return "Publikasi";
+    case "research":
+      return "Bioaktivitas";
     case "full":
       return "Konten Lengkap";
-    case "research":
-      return "Penelitian";
     default:
       return "Ringkasan";
   }
