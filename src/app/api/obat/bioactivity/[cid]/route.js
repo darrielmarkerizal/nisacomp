@@ -2,16 +2,121 @@ import axios from "axios";
 import { NextResponse } from "next/server";
 
 export async function GET(request, { params }) {
-  // Awaiting params untuk memenuhi syarat Next.js 14
+  // Mengambil parameter dari URL
   const { cid } = await Promise.resolve(params);
+  const searchParams = new URL(request.url).searchParams;
+  const aid = searchParams.get("aid");
 
-  if (!cid) {
+  // Jika ada parameter aid, kita akan mengarahkan ke endpoint assay/aid
+  if (aid) {
+    return await getAssaySummary(aid);
+  } else if (!cid) {
     return NextResponse.json(
       { error: "CID parameter is required" },
       { status: 400 }
     );
+  } else {
+    return await getBioactivityByCID(cid);
+  }
+}
+
+// Fungsi untuk mengambil detail assay berdasarkan AID
+async function getAssaySummary(aid) {
+  // Pastikan AID adalah angka valid
+  const aidNum = parseInt(aid);
+  if (isNaN(aidNum) || aidNum <= 0) {
+    return NextResponse.json(
+      { error: "AID harus berupa angka positif" },
+      { status: 400 }
+    );
   }
 
+  try {
+    // Endpoint PubChem untuk detail assay
+    const assayDetailUrl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/assay/aid/${aidNum}/summary/JSON`;
+
+    console.log(`Fetching assay detail from ${assayDetailUrl}`);
+    const response = await axios.get(assayDetailUrl);
+
+    // Jika berhasil mendapatkan data
+    if (response.data && response.data.AssaySummaries) {
+      // Ekstrak dan format data assay untuk respons
+      const assaySummary = response.data.AssaySummaries.AssaySummary[0];
+
+      // Format respons untuk informasi assay
+      const formattedResponse = {
+        aid: aidNum.toString(),
+        name: assaySummary.Name || "Unknown Assay",
+        sourceName: assaySummary.SourceName || null,
+        sourceID: assaySummary.SourceID || null,
+        description: Array.isArray(assaySummary.Description)
+          ? assaySummary.Description.join("\n")
+          : assaySummary.Description || null,
+        protocol: Array.isArray(assaySummary.Protocol)
+          ? assaySummary.Protocol.join("\n")
+          : assaySummary.Protocol || null,
+        comment: Array.isArray(assaySummary.Comment)
+          ? assaySummary.Comment.join("\n")
+          : assaySummary.Comment || null,
+        method: assaySummary.Method || null,
+        targets: (assaySummary.Target || []).map((target) => ({
+          name: target.Name || null,
+          accession: target.Accession || null,
+        })),
+        stats: {
+          sidCountAll: assaySummary.SIDCountAll || 0,
+          sidCountActive: assaySummary.SIDCountActive || 0,
+          sidCountInactive: assaySummary.SIDCountInactive || 0,
+          cidCountAll: assaySummary.CIDCountAll || 0,
+          cidCountActive: assaySummary.CIDCountActive || 0,
+          cidCountInactive: assaySummary.CIDCountInactive || 0,
+        },
+        lastChange: assaySummary.LastDataChange
+          ? {
+              year: assaySummary.LastDataChange.Year,
+              month: assaySummary.LastDataChange.Month,
+              day: assaySummary.LastDataChange.Day,
+            }
+          : null,
+        // Data tambahan
+        version: assaySummary.Version || null,
+        revision: assaySummary.Revision || null,
+        hasScore: assaySummary.HasScore || false,
+        numberOfTIDs: assaySummary.NumberOfTIDs || 0,
+        // Menyertakan data asli untuk memastikan tidak ada informasi yang hilang
+        rawData: response.data,
+      };
+
+      return NextResponse.json(formattedResponse);
+    } else {
+      // Jika tidak ada data assay
+      return NextResponse.json(
+        {
+          error: "No assay data found",
+          aid: aidNum.toString(),
+          rawData: response.data, // Tetap menyertakan data mentah meskipun tidak sesuai format yang diharapkan
+        },
+        { status: 404 }
+      );
+    }
+  } catch (error) {
+    console.error(`Error fetching assay data for AID ${aid}:`, error.message);
+
+    // Berikan respons error yang deskriptif
+    return NextResponse.json(
+      {
+        error: "Failed to fetch assay data",
+        details: error.message,
+        aid: aid,
+        message: `Terjadi kesalahan saat mengambil data assay: ${error.message}`,
+      },
+      { status: error.response?.status || 500 }
+    );
+  }
+}
+
+// Fungsi untuk mengambil bioaktivitas berdasarkan CID (kode yang ada sebelumnya)
+async function getBioactivityByCID(cid) {
   // Pastikan CID adalah angka valid
   const cidNum = parseInt(cid);
   if (isNaN(cidNum) || cidNum <= 0) {
@@ -342,8 +447,6 @@ export async function GET(request, { params }) {
 
 // Helper function untuk mengekstrak informasi bioaktivitas dari bagian section
 function extractBioactivityInfo(bioactivitySection) {
-  // Fungsi ini tetap sama seperti sebelumnya
-  // ...
   // Nilai default
   const defaultInfo = {
     activeAssayCount: 0,

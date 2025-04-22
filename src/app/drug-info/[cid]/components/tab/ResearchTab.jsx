@@ -52,7 +52,6 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Separator } from "@/components/ui/separator";
-import Molecule3DViewer from "../Molecule3DViewer";
 
 export default function ResearchTab({ compound }) {
   const [literatureData, setLiteratureData] = useState(null);
@@ -345,8 +344,6 @@ export default function ResearchTab({ compound }) {
           </AlertDescription>
         </Alert>
       )}
-
-      <Molecule3DViewer cid={compound.cid} />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
