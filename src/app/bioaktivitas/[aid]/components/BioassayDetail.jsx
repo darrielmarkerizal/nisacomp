@@ -17,6 +17,16 @@ import {
 } from "react-icons/md";
 
 import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+import {
   Card,
   CardContent,
   CardDescription,
@@ -427,66 +437,66 @@ export default function BioassayDetail({ aid }) {
                           </AccordionTrigger>
                           <AccordionContent>
                             <div className="bg-slate-50 rounded-md overflow-hidden border border-slate-200">
-                              <table className="w-full text-xs">
-                                <tbody>
-                                  <tr className="border-b border-slate-200">
-                                    <td className="px-3 py-2 bg-slate-100 font-medium">
+                              <Table>
+                                <TableBody>
+                                  <TableRow className="hover:bg-slate-100">
+                                    <TableCell className="font-medium bg-slate-100 w-1/3 py-2">
                                       ID Bioassay (AID)
-                                    </td>
-                                    <td className="px-3 py-2">
+                                    </TableCell>
+                                    <TableCell className="py-2">
                                       {bioassayData.aid || "-"}
-                                    </td>
-                                  </tr>
-                                  <tr className="border-b border-slate-200">
-                                    <td className="px-3 py-2 bg-slate-100 font-medium">
+                                    </TableCell>
+                                  </TableRow>
+                                  <TableRow className="hover:bg-slate-100">
+                                    <TableCell className="font-medium bg-slate-100 w-1/3 py-2">
                                       Nama
-                                    </td>
-                                    <td className="px-3 py-2">
+                                    </TableCell>
+                                    <TableCell className="py-2">
                                       {bioassayData.name || "-"}
-                                    </td>
-                                  </tr>
-                                  <tr className="border-b border-slate-200">
-                                    <td className="px-3 py-2 bg-slate-100 font-medium">
+                                    </TableCell>
+                                  </TableRow>
+                                  <TableRow className="hover:bg-slate-100">
+                                    <TableCell className="font-medium bg-slate-100 w-1/3 py-2">
                                       Sumber
-                                    </td>
-                                    <td className="px-3 py-2">
+                                    </TableCell>
+                                    <TableCell className="py-2">
                                       {bioassayData.sourceName || "-"}
-                                    </td>
-                                  </tr>
-                                  <tr className="border-b border-slate-200">
-                                    <td className="px-3 py-2 bg-slate-100 font-medium">
+                                    </TableCell>
+                                  </TableRow>
+                                  <TableRow className="hover:bg-slate-100">
+                                    <TableCell className="font-medium bg-slate-100 w-1/3 py-2">
                                       ID Sumber
-                                    </td>
-                                    <td className="px-3 py-2">
+                                    </TableCell>
+                                    <TableCell className="py-2">
                                       {bioassayData.sourceID || "-"}
-                                    </td>
-                                  </tr>
-                                  <tr className="border-b border-slate-200">
-                                    <td className="px-3 py-2 bg-slate-100 font-medium">
+                                    </TableCell>
+                                  </TableRow>
+                                  <TableRow className="hover:bg-slate-100">
+                                    <TableCell className="font-medium bg-slate-100 w-1/3 py-2">
                                       Metode
-                                    </td>
-                                    <td className="px-3 py-2">
+                                    </TableCell>
+                                    <TableCell className="py-2">
                                       {bioassayData.method || "-"}
-                                    </td>
-                                  </tr>
-                                  <tr className="border-b border-slate-200">
-                                    <td className="px-3 py-2 bg-slate-100 font-medium">
+                                    </TableCell>
+                                  </TableRow>
+                                  <TableRow className="hover:bg-slate-100">
+                                    <TableCell className="font-medium bg-slate-100 w-1/3 py-2">
                                       Versi
-                                    </td>
-                                    <td className="px-3 py-2">
+                                    </TableCell>
+                                    <TableCell className="py-2">
                                       {bioassayData.version || "-"}
-                                    </td>
-                                  </tr>
-                                  <tr>
-                                    <td className="px-3 py-2 bg-slate-100 font-medium">
+                                    </TableCell>
+                                  </TableRow>
+                                  <TableRow className="hover:bg-slate-100">
+                                    <TableCell className="font-medium bg-slate-100 w-1/3 py-2">
                                       Terakhir Diperbarui
-                                    </td>
-                                    <td className="px-3 py-2">
+                                    </TableCell>
+                                    <TableCell className="py-2">
                                       {formattedDate}
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              </table>
+                                    </TableCell>
+                                  </TableRow>
+                                </TableBody>
+                              </Table>
                             </div>
                           </AccordionContent>
                         </AccordionItem>

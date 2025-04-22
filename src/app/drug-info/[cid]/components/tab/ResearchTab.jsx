@@ -40,6 +40,14 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import Link from "next/link";
 
 export default function ResearchTab({ compound }) {
@@ -537,11 +545,11 @@ export default function ResearchTab({ compound }) {
 
                   {/* Bioassay table */}
                   <div className="overflow-auto border border-slate-200 rounded-lg max-h-[350px] sm:max-h-[400px]">
-                    <table className="min-w-full divide-y divide-slate-200">
-                      <thead className="bg-slate-50 sticky top-0 z-10">
-                        <tr>
-                          <th
-                            className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 text-left cursor-pointer hover:bg-slate-100"
+                    <Table>
+                      <TableHeader className="bg-slate-50 sticky top-0 z-10">
+                        <TableRow>
+                          <TableHead
+                            className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 cursor-pointer hover:bg-slate-100 w-16 sm:w-20"
                             onClick={() => handleBioassaySortChange("AID")}
                           >
                             <div className="flex items-center">
@@ -554,9 +562,9 @@ export default function ResearchTab({ compound }) {
                                 </span>
                               )}
                             </div>
-                          </th>
-                          <th
-                            className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 text-left cursor-pointer hover:bg-slate-100"
+                          </TableHead>
+                          <TableHead
+                            className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 cursor-pointer hover:bg-slate-100 w-20 sm:w-24"
                             onClick={() =>
                               handleBioassaySortChange("Activity Outcome")
                             }
@@ -571,9 +579,9 @@ export default function ResearchTab({ compound }) {
                                 </span>
                               )}
                             </div>
-                          </th>
-                          <th
-                            className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 text-left cursor-pointer hover:bg-slate-100"
+                          </TableHead>
+                          <TableHead
+                            className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 cursor-pointer hover:bg-slate-100 w-20 sm:w-24"
                             onClick={() =>
                               handleBioassaySortChange("Activity Value [uM]")
                             }
@@ -589,23 +597,30 @@ export default function ResearchTab({ compound }) {
                                 </span>
                               )}
                             </div>
-                          </th>
-                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 text-left">
+                          </TableHead>
+                          <TableHead className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600">
                             Nama Assay
-                          </th>
-                          <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 text-left">
+                          </TableHead>
+                          <TableHead className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 w-16 sm:w-20">
                             Detail
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-slate-200">
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                         {bioactivityData.bioactivity.assays.map(
                           (assay, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50">
-                              <td className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs text-slate-600">
-                                {assay["AID"] || "-"}
-                              </td>
-                              <td className="px-2 sm:px-3 py-1.5 sm:py-2">
+                            <TableRow
+                              key={idx}
+                              className="hover:bg-slate-50 border-b border-slate-200"
+                            >
+                              <TableCell className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs text-slate-600">
+                                <Link href={`/bioaktivitas/${assay["AID"]}`}>
+                                  <span className="cursor-pointer hover:text-green-600 hover:underline">
+                                    {assay["AID"] || "-"}
+                                  </span>
+                                </Link>
+                              </TableCell>
+                              <TableCell className="px-2 sm:px-3 py-1.5 sm:py-2">
                                 {assay["Activity Outcome"] ? (
                                   <Badge
                                     variant="outline"
@@ -632,8 +647,8 @@ export default function ResearchTab({ compound }) {
                                     -
                                   </span>
                                 )}
-                              </td>
-                              <td className="px-2 sm:px-3 py-1.5 sm:py-2">
+                              </TableCell>
+                              <TableCell className="px-2 sm:px-3 py-1.5 sm:py-2">
                                 {assay["Activity Value [uM]"] ? (
                                   <div className="flex flex-col">
                                     <span
@@ -664,18 +679,20 @@ export default function ResearchTab({ compound }) {
                                     -
                                   </span>
                                 )}
-                              </td>
-                              <td className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs text-slate-800">
-                                <div className="max-w-[150px] sm:max-w-[250px] md:max-w-[350px] truncate">
-                                  {assay["Assay Name"] || "-"}
-                                  {assay["Target Name"] && (
-                                    <span className="text-[9px] text-slate-500 block">
-                                      Target: {assay["Target Name"]}
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-2 sm:px-3 py-1.5 sm:py-2">
+                              </TableCell>
+                              <TableCell className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs text-slate-800">
+                                <Link href={`/bioaktivitas/${assay["AID"]}`}>
+                                  <div className="max-w-[150px] sm:max-w-[250px] md:max-w-[350px] truncate cursor-pointer hover:text-green-600 hover:underline">
+                                    {assay["Assay Name"] || "-"}
+                                    {assay["Target Name"] && (
+                                      <span className="text-[9px] text-slate-500 block hover:text-slate-500 no-underline">
+                                        Target: {assay["Target Name"]}
+                                      </span>
+                                    )}
+                                  </div>
+                                </Link>
+                              </TableCell>
+                              <TableCell className="px-2 sm:px-3 py-1.5 sm:py-2">
                                 <Link href={`/bioaktivitas/${assay["AID"]}`}>
                                   <Button
                                     variant="ghost"
@@ -688,12 +705,12 @@ export default function ResearchTab({ compound }) {
                                     </span>
                                   </Button>
                                 </Link>
-                              </td>
-                            </tr>
+                              </TableCell>
+                            </TableRow>
                           )
                         )}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
 
                   {/* Footer pagination controls */}
