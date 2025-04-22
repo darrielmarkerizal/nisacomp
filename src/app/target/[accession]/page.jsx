@@ -19,6 +19,7 @@ import TargetInfo from "./components/TargetInfo";
 import TargetSequence from "./components/TargetSequence";
 import TargetFeatures from "./components/TargetFeatures";
 import TargetReferences from "./components/TargetReferences";
+import TargetVisualizer from "./components/TargetVisualizer";
 
 export default function TargetPage({ params }) {
   const [target, setTarget] = useState(null);
@@ -326,6 +327,9 @@ export default function TargetPage({ params }) {
               </TabsContent>
               <TabsContent value="references">
                 <TargetReferences target={target} />
+              </TabsContent>
+              <TabsContent value="visualizer">
+                <TargetVisualizer target={target} />
               </TabsContent>
             </ScrollArea>
           </Tabs>
