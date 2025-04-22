@@ -272,9 +272,11 @@ export default function BioassayDetail({ aid }) {
                           {target.name}
                         </span>
                         {target.accession && (
-                          <span className="text-[10px] sm:text-xs text-indigo-600 block mt-0.5">
-                            Accession: {target.accession}
-                          </span>
+                          <Link href={`/target/${target.accession}`}>
+                            <span className="text-[10px] sm:text-xs text-indigo-600 block mt-0.5 hover:underline">
+                              Accession: {target.accession}
+                            </span>
+                          </Link>
                         )}
                       </li>
                     ))}
@@ -742,81 +744,121 @@ export default function BioassayDetail({ aid }) {
                           </AccordionContent>
                         </AccordionItem>
 
-                        {fullData.AssaySummaries?.AssaySummary?.[0]?.Target && (
-                          <AccordionItem value="targets-detail">
-                            <AccordionTrigger className="text-sm sm:text-base font-medium py-2">
-                              Detail Target
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              <div className="bg-slate-50 p-3 sm:p-4 rounded-md text-xs text-slate-700 border border-slate-200">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                                  {Array.isArray(
-                                    fullData.AssaySummaries?.AssaySummary[0]
-                                      ?.Target
-                                  ) ? (
-                                    fullData.AssaySummaries?.AssaySummary[0]?.Target.map(
-                                      (target, idx) => (
-                                        <div
-                                          key={idx}
-                                          className="p-2 border border-indigo-100 bg-indigo-50 rounded-md"
-                                        >
-                                          <div className="font-medium text-indigo-800 mb-1">
-                                            {target.Name ||
-                                              "Target Tidak Bernama"}
+                        <AccordionItem value="target-details">
+                          <AccordionTrigger className="text-sm sm:text-base font-medium py-2">
+                            Detail Target Biologis
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="bg-slate-50 p-3 sm:p-4 rounded-md text-xs text-slate-700 border border-slate-200">
+                              {fullData.AssaySummaries?.AssaySummary?.[0]
+                                ?.Target ? (
+                                <div className="space-y-3">
+                                  {/* Tampilkan informasi lengkap tentang target biologis */}
+                                  <h4 className="font-medium text-slate-800 mb-2">
+                                    Target Gene/Protein:
+                                  </h4>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {Array.isArray(
+                                      fullData.AssaySummaries?.AssaySummary[0]
+                                        ?.Target
+                                    ) ? (
+                                      fullData.AssaySummaries?.AssaySummary[0]?.Target.map(
+                                        (target, idx) => (
+                                          <div
+                                            key={idx}
+                                            className="bg-indigo-50 p-3 rounded-md border border-indigo-100"
+                                          >
+                                            <div className="font-medium text-indigo-800">
+                                              {target.Name || "Unnamed Target"}
+                                            </div>
+                                            {target.Accession && (
+                                              <div className="mt-1 grid grid-cols-[100px_1fr]">
+                                                <span className="text-slate-500">
+                                                  Accession:
+                                                </span>
+                                                {/* Changed link to point to our internal target page */}
+                                                <Link
+                                                  href={`/target/${target.Accession}`}
+                                                  className="text-indigo-600 hover:underline"
+                                                >
+                                                  {target.Accession}
+                                                </Link>
+                                              </div>
+                                            )}
+                                            {target.GI && (
+                                              <div className="mt-1 grid grid-cols-[100px_1fr]">
+                                                <span className="text-slate-500">
+                                                  GI:
+                                                </span>{" "}
+                                                {target.GI}
+                                              </div>
+                                            )}
+                                            {target.TaxonomyID && (
+                                              <div className="mt-1 grid grid-cols-[100px_1fr]">
+                                                <span className="text-slate-500">
+                                                  Taxonomy:
+                                                </span>
+                                                <a
+                                                  href={`https://www.ncbi.nlm.nih.gov/taxonomy/${target.TaxonomyID}`}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="text-indigo-600 hover:underline"
+                                                >
+                                                  {target.TaxonomyID}
+                                                </a>
+                                              </div>
+                                            )}
+                                            {target.Organism && (
+                                              <div className="mt-1 grid grid-cols-[100px_1fr]">
+                                                <span className="text-slate-500">
+                                                  Organism:
+                                                </span>{" "}
+                                                {target.Organism}
+                                              </div>
+                                            )}
                                           </div>
-                                          {target.Accession && (
-                                            <div className="text-indigo-600">
-                                              Accession: {target.Accession}
-                                            </div>
-                                          )}
-                                          {target.GI && (
-                                            <div className="text-indigo-600">
-                                              GI: {target.GI}
-                                            </div>
-                                          )}
-                                          {target.TaxonomyID && (
-                                            <div className="text-indigo-600">
-                                              Taxonomy ID: {target.TaxonomyID}
-                                            </div>
-                                          )}
-                                          {target.Organism && (
-                                            <div className="text-indigo-600">
-                                              Organism: {target.Organism}
-                                            </div>
-                                          )}
-                                        </div>
+                                        )
                                       )
-                                    )
-                                  ) : fullData.AssaySummaries?.AssaySummary[0]
-                                      ?.Target ? (
-                                    <div className="p-2 border border-indigo-100 bg-indigo-50 rounded-md">
-                                      <div className="font-medium text-indigo-800 mb-1">
-                                        {fullData.AssaySummaries
-                                          ?.AssaySummary[0]?.Target.Name ||
-                                          "Target Tidak Bernama"}
-                                      </div>
-                                      {fullData.AssaySummaries?.AssaySummary[0]
-                                        ?.Target.Accession && (
-                                        <div className="text-indigo-600">
-                                          Accession:{" "}
-                                          {
-                                            fullData.AssaySummaries
-                                              ?.AssaySummary[0]?.Target
-                                              .Accession
-                                          }
+                                    ) : (
+                                      /* Handle single target case */
+                                      <div className="bg-indigo-50 p-3 rounded-md border border-indigo-100">
+                                        <div className="font-medium text-indigo-800">
+                                          {fullData.AssaySummaries
+                                            ?.AssaySummary[0]?.Target.Name ||
+                                            "Unnamed Target"}
                                         </div>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <p className="text-slate-400 italic">
-                                      Tidak ada data target yang tersedia
-                                    </p>
-                                  )}
+                                        {fullData.AssaySummaries
+                                          ?.AssaySummary[0]?.Target
+                                          .Accession && (
+                                          <div className="mt-1 grid grid-cols-[100px_1fr]">
+                                            <span className="text-slate-500">
+                                              Accession:
+                                            </span>
+                                            {/* Changed link to point to our internal target page */}
+                                            <Link
+                                              href={`/target/${fullData.AssaySummaries?.AssaySummary[0]?.Target.Accession}`}
+                                              className="text-indigo-600 hover:underline"
+                                            >
+                                              {
+                                                fullData.AssaySummaries
+                                                  ?.AssaySummary[0]?.Target
+                                                  .Accession
+                                              }
+                                            </Link>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        )}
+                              ) : (
+                                <p className="text-slate-400 italic">
+                                  Tidak ada data target yang tersedia
+                                </p>
+                              )}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
                       </>
                     ) : (
                       <div className="text-center p-4">
