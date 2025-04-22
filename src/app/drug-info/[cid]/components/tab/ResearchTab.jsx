@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import {
   MdOutlineArticle,
@@ -13,6 +13,12 @@ import {
   MdInfoOutline,
   MdMedication,
   MdOutlineMedicalInformation,
+  MdSearch,
+  MdSort,
+  MdChevronLeft,
+  MdChevronRight,
+  MdFilterList,
+  MdDownload,
 } from "react-icons/md";
 
 import {
@@ -28,6 +34,24 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { Separator } from "@/components/ui/separator";
 import Molecule3DViewer from "../Molecule3DViewer";
 
 export default function ResearchTab({ compound }) {
@@ -48,6 +72,94 @@ export default function ResearchTab({ compound }) {
     interactions: null,
   });
   const [activeTab, setActiveTab] = useState("publications");
+
+  // State untuk pagination, pencarian, dan pengurutan publikasi
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("year");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [searchTimeout, setSearchTimeout] = useState(null);
+  const [isLoadingSearch, setIsLoadingSearch] = useState(false);
+
+  // Debounce search query
+  useEffect(() => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+
+    const timeout = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    setSearchTimeout(timeout);
+
+    return () => {
+      if (searchTimeout) clearTimeout(searchTimeout);
+    };
+  }, [searchQuery]);
+
+  // Fungsi untuk fetch data dengan parameter yang diberikan
+  const fetchLiteratureData = useCallback(
+    async (options = {}) => {
+      const {
+        page = currentPage,
+        itemsPerPage = perPage,
+        query = debouncedSearchQuery,
+        sort = sortBy,
+        order = sortOrder,
+        showLoading = true,
+      } = options;
+
+      try {
+        if (showLoading) {
+          setLoading((prev) => ({ ...prev, literature: true }));
+        } else {
+          setIsLoadingSearch(true);
+        }
+
+        // Bangun query parameters
+        const params = new URLSearchParams({
+          page,
+          perPage: itemsPerPage,
+          sortBy: sort,
+          sortOrder: order,
+        });
+
+        if (query) {
+          params.append("query", query);
+        }
+
+        const response = await axios.get(
+          `/api/obat/literature/${compound.cid}?${params.toString()}`
+        );
+
+        setLiteratureData(response.data);
+      } catch (err) {
+        console.error("Error fetching literature data:", err);
+        setErrors((prev) => ({
+          ...prev,
+          literature:
+            err.response?.data?.error ||
+            err.message ||
+            "Failed to fetch literature data",
+        }));
+      } finally {
+        if (showLoading) {
+          setLoading((prev) => ({ ...prev, literature: false }));
+        } else {
+          setIsLoadingSearch(false);
+        }
+      }
+    },
+    [
+      compound.cid,
+      currentPage,
+      perPage,
+      debouncedSearchQuery,
+      sortBy,
+      sortOrder,
+    ]
+  );
 
   useEffect(() => {
     async function fetchAllData() {
@@ -70,27 +182,6 @@ export default function ResearchTab({ compound }) {
 
       // Fetch interactions data
       fetchInteractionsData();
-    }
-
-    async function fetchLiteratureData() {
-      try {
-        setLoading((prev) => ({ ...prev, literature: true }));
-        const response = await axios.get(
-          `/api/obat/literature/${compound.cid}`
-        );
-        setLiteratureData(response.data);
-      } catch (err) {
-        console.error("Error fetching literature data:", err);
-        setErrors((prev) => ({
-          ...prev,
-          literature:
-            err.response?.data?.error ||
-            err.message ||
-            "Failed to fetch literature data",
-        }));
-      } finally {
-        setLoading((prev) => ({ ...prev, literature: false }));
-      }
     }
 
     async function fetchBioactivityData() {
@@ -157,7 +248,46 @@ export default function ResearchTab({ compound }) {
     }
 
     fetchAllData();
-  }, [compound.cid]);
+  }, [compound.cid, fetchLiteratureData]);
+
+  // Effect untuk trigger fetch saat parameter berubah
+  useEffect(() => {
+    if (activeTab === "publications") {
+      fetchLiteratureData({ showLoading: false });
+    }
+  }, [
+    debouncedSearchQuery,
+    sortBy,
+    sortOrder,
+    currentPage,
+    perPage,
+    fetchLiteratureData,
+    activeTab,
+  ]);
+
+  // Handler untuk perubahan halaman
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Handler untuk perubahan items per page
+  const handlePerPageChange = (value) => {
+    setPerPage(parseInt(value));
+    setCurrentPage(1); // Reset ke halaman pertama saat mengubah jumlah per halaman
+  };
+
+  // Handler untuk reset pencarian
+  const handleResetSearch = () => {
+    setSearchQuery("");
+    setDebouncedSearchQuery("");
+    setCurrentPage(1);
+  };
+
+  // Handler untuk toggle arah pengurutan
+  const handleToggleSortOrder = () => {
+    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    setCurrentPage(1);
+  };
 
   // Determine whether we should show the loading state for the entire component
   const isLoading = Object.values(loading).some((status) => status);
@@ -166,7 +296,7 @@ export default function ResearchTab({ compound }) {
   const allFailed = Object.values(errors).every((error) => error !== null);
   const anyFailed = Object.values(errors).some((error) => error !== null);
 
-  if (isLoading) {
+  if (isLoading && !activeTab) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-10 w-full max-w-md" />
@@ -225,12 +355,11 @@ export default function ResearchTab({ compound }) {
           <TabsTrigger value="publications" className="flex items-center gap-1">
             <MdOutlineLibraryBooks className="h-4 w-4" />
             <span>Publikasi</span>
-            {!loading.literature &&
-              literatureData?.publications?.length > 0 && (
-                <Badge variant="secondary" className="ml-1.5 text-2xs h-5">
-                  {literatureData.publicationCount}
-                </Badge>
-              )}
+            {!loading.literature && literatureData?.publicationCount > 0 && (
+              <Badge variant="secondary" className="ml-1.5 text-2xs h-5">
+                {literatureData.publicationCount}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="bioactivity" className="flex items-center gap-1">
             <MdOutlineBiotech className="h-4 w-4" />
@@ -272,7 +401,53 @@ export default function ResearchTab({ compound }) {
                 Referensi ilmiah dan publikasi terkait {compound.name}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 relative">
+              {/* Pencarian dan filter */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                <div className="relative flex-grow">
+                  <MdSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+                  <Input
+                    type="text"
+                    placeholder="Cari publikasi berdasarkan judul, penulis, atau jurnal..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Select
+                    value={sortBy}
+                    onValueChange={(value) => {
+                      setSortBy(value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="w-[130px]">
+                      <SelectValue placeholder="Urutkan berdasarkan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="year">Tahun</SelectItem>
+                      <SelectItem value="title">Judul</SelectItem>
+                      <SelectItem value="journal">Jurnal</SelectItem>
+                      <SelectItem value="authors">Penulis</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleToggleSortOrder}
+                    title={
+                      sortOrder === "asc" ? "Urutkan menurun" : "Urutkan menaik"
+                    }
+                    className="flex-shrink-0"
+                  >
+                    <MdSort
+                      className={`h-4 w-4 ${sortOrder === "asc" ? "transform rotate-180" : ""}`}
+                    />
+                  </Button>
+                </div>
+              </div>
+
               {errors.literature ? (
                 <Alert variant="destructive" className="mb-4">
                   <MdOutlineWarning className="h-4 w-4" />
@@ -281,71 +456,260 @@ export default function ResearchTab({ compound }) {
                 </Alert>
               ) : loading.literature ? (
                 <div className="flex flex-col items-center justify-center py-8">
-                  <Skeleton className="h-20 w-20 rounded-full mb-4" />
-                  <Skeleton className="h-4 w-40 mb-2" />
-                  <Skeleton className="h-4 w-60" />
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
+                  <p className="text-slate-500">Memuat publikasi...</p>
                 </div>
               ) : literatureData?.publications &&
                 literatureData.publications.length > 0 ? (
                 <>
-                  {literatureData.publications.map((pub, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 bg-white border border-slate-200 rounded-lg hover:border-indigo-200 transition-colors"
-                    >
-                      <a
-                        href={pub.url}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="font-medium text-indigo-600 hover:underline flex items-start gap-1 mb-2"
-                      >
-                        <span>{pub.title}</span>
-                        <MdOpenInNew className="flex-shrink-0 h-4 w-4 mt-0.5" />
-                      </a>
-
-                      <div className="flex flex-wrap text-xs text-slate-500 gap-4 mt-1">
-                        <div className="flex items-center gap-1">
-                          <MdPerson className="h-3 w-3" />
-                          <span>{pub.authors}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <MdOutlineBook className="h-3 w-3" />
-                          <span>{pub.journal}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <MdCalendarToday className="h-3 w-3" />
-                          <span>{pub.year}</span>
-                        </div>
+                  {/* Status pencarian atau loading */}
+                  <div className="flex flex-col sm:flex-row justify-between items-center">
+                    {literatureData.search && literatureData.search.query && (
+                      <div className="text-sm text-slate-500 mb-2">
+                        Ditemukan{" "}
+                        <span className="font-medium">
+                          {literatureData.filteredCount}
+                        </span>{" "}
+                        dari {literatureData.publicationCount} publikasi untuk
+                        pencarian "{literatureData.search.query}"
                       </div>
+                    )}
+                    {!literatureData.search?.query && (
+                      <div className="text-sm text-slate-500 mb-2">
+                        Total publikasi:{" "}
+                        <span className="font-medium">
+                          {literatureData.publicationCount}
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
-                      <div className="mt-2">
-                        <Badge variant="outline" className="text-xs">
-                          PMID: {pub.pmid}
-                        </Badge>
+                  {/* Overlay loading untuk pencarian */}
+                  {isLoadingSearch && (
+                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-10 rounded-md">
+                      <div className="bg-white/80 p-4 rounded-lg shadow-sm flex items-center gap-3">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-indigo-500 border-t-transparent"></div>
+                        <span className="text-slate-700">Mencari...</span>
                       </div>
                     </div>
-                  ))}
+                  )}
 
-                  {literatureData.publicationCount >
-                    literatureData.publications.length && (
-                    <div className="text-center mt-4">
+                  {/* Daftar publikasi */}
+                  <div className="space-y-3">
+                    {literatureData.publications.map((pub, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 bg-white border border-slate-200 rounded-lg hover:border-indigo-200 transition-colors"
+                      >
+                        <a
+                          href={pub.url}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="font-medium text-indigo-600 hover:underline flex items-start gap-1 mb-2"
+                        >
+                          <span>{pub.title}</span>
+                          <MdOpenInNew className="flex-shrink-0 h-4 w-4 mt-0.5" />
+                        </a>
+
+                        <div className="flex flex-wrap text-xs text-slate-500 gap-4 mt-1">
+                          <div className="flex items-center gap-1">
+                            <MdPerson className="h-3 w-3" />
+                            <span>{pub.authors}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MdOutlineBook className="h-3 w-3" />
+                            <span>{pub.journal}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MdCalendarToday className="h-3 w-3" />
+                            <span>{pub.year}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-2">
+                          <Badge variant="outline" className="text-xs">
+                            PMID: {pub.pmid}
+                          </Badge>
+                          {pub.abstract && (
+                            <details className="mt-2">
+                              <summary className="text-xs text-indigo-600 cursor-pointer">
+                                Lihat Abstrak
+                              </summary>
+                              <p className="text-xs text-slate-600 mt-2 bg-slate-50 p-3 rounded-md">
+                                {pub.abstract}
+                              </p>
+                            </details>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Footer pagination */}
+                  <Separator className="my-4" />
+
+                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    {/* Items per page selector */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-500">Tampilkan:</span>
+                      <Select
+                        value={perPage.toString()}
+                        onValueChange={handlePerPageChange}
+                      >
+                        <SelectTrigger className="w-[80px] h-8">
+                          <SelectValue placeholder={perPage} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5</SelectItem>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Pagination info */}
+                    {literatureData.pagination &&
+                      literatureData.filteredCount > 0 && (
+                        <div className="text-sm text-slate-500">
+                          Halaman {literatureData.pagination.currentPage} dari{" "}
+                          {literatureData.pagination.totalPages || 1}
+                          <span className="mx-1">•</span>
+                          Menampilkan{" "}
+                          {(literatureData.pagination.currentPage - 1) *
+                            perPage +
+                            1}{" "}
+                          -{" "}
+                          {Math.min(
+                            literatureData.pagination.currentPage * perPage,
+                            literatureData.filteredCount
+                          )}{" "}
+                          dari {literatureData.filteredCount} hasil
+                        </div>
+                      )}
+                  </div>
+
+                  {/* ShadCN Pagination */}
+                  {literatureData.pagination &&
+                    literatureData.pagination.totalPages > 1 && (
+                      <Pagination className="mt-4">
+                        <PaginationContent>
+                          {/* Previous button */}
+                          <PaginationItem>
+                            <PaginationPrevious
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                if (literatureData.pagination.hasPrevPage) {
+                                  handlePageChange(
+                                    literatureData.pagination.currentPage - 1
+                                  );
+                                }
+                              }}
+                              className={
+                                !literatureData.pagination.hasPrevPage
+                                  ? "pointer-events-none opacity-50"
+                                  : ""
+                              }
+                            />
+                          </PaginationItem>
+
+                          {/* Generate pagination items */}
+                          {generatePaginationItems(
+                            literatureData.pagination.currentPage,
+                            literatureData.pagination.totalPages
+                          ).map((item, index) => (
+                            <PaginationItem key={index}>
+                              {item === "ellipsis" ? (
+                                <PaginationEllipsis />
+                              ) : (
+                                <PaginationLink
+                                  href="#"
+                                  isActive={
+                                    item ===
+                                    literatureData.pagination.currentPage
+                                  }
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handlePageChange(item);
+                                  }}
+                                >
+                                  {item}
+                                </PaginationLink>
+                              )}
+                            </PaginationItem>
+                          ))}
+
+                          {/* Next button */}
+                          <PaginationItem>
+                            <PaginationNext
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                if (literatureData.pagination.hasNextPage) {
+                                  handlePageChange(
+                                    literatureData.pagination.currentPage + 1
+                                  );
+                                }
+                              }}
+                              className={
+                                !literatureData.pagination.hasNextPage
+                                  ? "pointer-events-none opacity-50"
+                                  : ""
+                              }
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
+                    )}
+
+                  {/* Actions and external links */}
+                  <div className="flex flex-wrap justify-center gap-2 mt-6">
+                    {searchQuery && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleResetSearch}
+                        className="flex items-center gap-1"
+                      >
+                        <MdFilterList className="h-4 w-4" />
+                        <span>Hapus Pencarian</span>
+                      </Button>
+                    )}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        window.open(
+                          `https://pubchem.ncbi.nlm.nih.gov/compound/${compound.cid}#section=Literature`,
+                          "_blank"
+                        )
+                      }
+                      className="flex items-center gap-1"
+                    >
+                      <MdOpenInNew className="h-4 w-4" />
+                      <span>Lihat di PubChem</span>
+                    </Button>
+
+                    {literatureData.publicationCount > 0 && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() =>
                           window.open(
-                            `https://pubchem.ncbi.nlm.nih.gov/compound/${compound.cid}#section=Literature`,
+                            `/api/obat/literature/${compound.cid}?all=true&download=true`,
                             "_blank"
                           )
                         }
+                        className="flex items-center gap-1"
                       >
-                        Lihat{" "}
-                        {literatureData.publicationCount -
-                          literatureData.publications.length}{" "}
-                        publikasi lainnya
+                        <MdDownload className="h-4 w-4" />
+                        <span>Unduh Semua Publikasi</span>
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </>
               ) : (
                 <div className="p-8 text-center">
@@ -353,12 +717,24 @@ export default function ResearchTab({ compound }) {
                     <MdOutlineLibraryBooks className="h-6 w-6 text-slate-500" />
                   </div>
                   <h3 className="text-lg font-medium text-slate-800">
-                    Tidak Ada Publikasi
+                    {searchQuery
+                      ? "Tidak Ditemukan Hasil"
+                      : "Tidak Ada Publikasi"}
                   </h3>
                   <p className="text-slate-500 max-w-md mx-auto">
-                    Tidak ditemukan publikasi ilmiah yang terkait dengan{" "}
-                    {compound.name}
+                    {searchQuery
+                      ? `Tidak ditemukan publikasi yang sesuai dengan pencarian "${searchQuery}"`
+                      : `Tidak ditemukan publikasi ilmiah yang terkait dengan ${compound.name}`}
                   </p>
+                  {searchQuery && (
+                    <Button
+                      variant="outline"
+                      onClick={handleResetSearch}
+                      className="mt-4"
+                    >
+                      Hapus Pencarian
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -949,4 +1325,41 @@ export default function ResearchTab({ compound }) {
       </Tabs>
     </div>
   );
+}
+
+// Helper function untuk menghasilkan item pagination
+function generatePaginationItems(currentPage, totalPages) {
+  // Jika total halaman <= 7, tampilkan semua halaman
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  // Jika halaman saat ini dekat dengan awal
+  if (currentPage <= 3) {
+    return [1, 2, 3, 4, 5, "ellipsis", totalPages];
+  }
+
+  // Jika halaman saat ini dekat dengan akhir
+  if (currentPage >= totalPages - 2) {
+    return [
+      1,
+      "ellipsis",
+      totalPages - 4,
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+      totalPages,
+    ];
+  }
+
+  // Jika halaman saat ini di tengah-tengah
+  return [
+    1,
+    "ellipsis",
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    "ellipsis",
+    totalPages,
+  ];
 }
