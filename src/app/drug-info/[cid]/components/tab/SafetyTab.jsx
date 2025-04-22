@@ -31,8 +31,24 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-function SafetyTab({ compound, renderSectionIfExists }) {
+function SafetyTab({
+  compound,
+  renderSectionIfExists,
+  bioactivityData,
+  handleBioassaySortChange,
+  bioassayActiveSortBy,
+  bioassayActiveSortOrder,
+}) {
   return (
     <div className="space-y-6">
       {/* FDA Warnings Card - Improved */}
@@ -506,6 +522,173 @@ function SafetyTab({ compound, renderSectionIfExists }) {
           </CardFooter>
         </Card>
       )}
+
+      {/* Bioassay Table */}
+      <div className="overflow-auto border border-slate-200 rounded-lg max-h-[350px] sm:max-h-[400px]">
+        <Table>
+          <TableHeader className="bg-slate-50 sticky top-0 z-10">
+            <TableRow>
+              <TableHead
+                className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 cursor-pointer hover:bg-slate-100"
+                onClick={() => handleBioassaySortChange("AID")}
+              >
+                <div className="flex items-center">
+                  AID
+                  {bioassayActiveSortBy === "AID" && (
+                    <span className="ml-1">
+                      {bioassayActiveSortOrder === "asc" ? "↑" : "↓"}
+                    </span>
+                  )}
+                </div>
+              </TableHead>
+              <TableHead
+                className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 cursor-pointer hover:bg-slate-100"
+                onClick={() => handleBioassaySortChange("Activity Outcome")}
+              >
+                <div className="flex items-center">
+                  Hasil
+                  {bioassayActiveSortBy === "Activity Outcome" && (
+                    <span className="ml-1">
+                      {bioassayActiveSortOrder === "asc" ? "↑" : "↓"}
+                    </span>
+                  )}
+                </div>
+              </TableHead>
+              <TableHead
+                className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 cursor-pointer hover:bg-slate-100"
+                onClick={() => handleBioassaySortChange("Activity Value [uM]")}
+              >
+                <div className="flex items-center">
+                  Nilai (uM)
+                  {bioassayActiveSortBy === "Activity Value [uM]" && (
+                    <span className="ml-1">
+                      {bioassayActiveSortOrder === "asc" ? "↑" : "↓"}
+                    </span>
+                  )}
+                </div>
+              </TableHead>
+              <TableHead className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600">
+                Nama Assay
+              </TableHead>
+              <TableHead className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-slate-600 w-[60px] sm:w-[80px]">
+                Detail
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="bg-white">
+            {bioactivityData.bioactivity.assays.map((assay, idx) => (
+              <TableRow
+                key={idx}
+                className="hover:bg-slate-50 border-b border-slate-200"
+              >
+                <TableCell className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs text-slate-600">
+                  {assay["AID"] || "-"}
+                </TableCell>
+                <TableCell className="px-2 sm:px-3 py-1.5 sm:py-2">
+                  {assay["Activity Outcome"] ? (
+                    <Badge
+                      variant="outline"
+                      className={`${
+                        assay["Activity Outcome"]
+                          .toLowerCase()
+                          .includes("active")
+                          ? "bg-green-50 text-green-700 border-green-200"
+                          : assay["Activity Outcome"]
+                                .toLowerCase()
+                                .includes("inactive")
+                            ? "bg-slate-50 text-slate-700 border-slate-200"
+                            : assay["Activity Outcome"]
+                                  .toLowerCase()
+                                  .includes("inconclusive")
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : "bg-slate-50 text-slate-700 border-slate-200"
+                      } text-[9px] sm:text-xs px-1 sm:px-1.5 py-0.5 whitespace-nowrap font-medium`}
+                    >
+                      {assay["Activity Outcome"]}
+                    </Badge>
+                  ) : (
+                    <span className="text-[10px] sm:text-xs text-slate-500">
+                      -
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell className="px-2 sm:px-3 py-1.5 sm:py-2">
+                  {assay["Activity Value [uM]"] ? (
+                    <div className="flex flex-col">
+                      <span
+                        className={`text-[10px] sm:text-xs ${
+                          parseFloat(assay["Activity Value [uM]"]) < 1
+                            ? "text-green-600 font-medium"
+                            : parseFloat(assay["Activity Value [uM]"]) < 10
+                              ? "text-green-700"
+                              : "text-slate-600"
+                        }`}
+                      >
+                        {!isNaN(parseFloat(assay["Activity Value [uM]"]))
+                          ? parseFloat(assay["Activity Value [uM]"]).toFixed(2)
+                          : assay["Activity Value [uM]"]}
+                      </span>
+                      {assay["Activity Type"] && (
+                        <span className="text-[9px] text-slate-500 hidden sm:inline">
+                          {assay["Activity Type"]}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-[10px] sm:text-xs text-slate-500">
+                      -
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs text-slate-800">
+                  <div className="max-w-[150px] sm:max-w-[250px] md:max-w-[350px] truncate">
+                    {assay["Assay Name"] || "-"}
+                    {assay["Target Name"] && (
+                      <span className="text-[9px] text-slate-500 block">
+                        Target: {assay["Target Name"]}
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="px-2 sm:px-3 py-1.5 sm:py-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 sm:h-7 text-[9px] sm:text-xs p-1 sm:p-2 w-full"
+                    onClick={() => {
+                      window.open(
+                        `/api/obat/bioactivity/${compound.cid}?aid=${assay["AID"]}`,
+                        "_blank"
+                      );
+                    }}
+                  >
+                    <MdOpenInNew className="mr-1 h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                    <span className="hidden xs:inline">Detail</span>
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+
+            {bioactivityData.bioactivity.assays.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="h-24 text-center text-sm text-slate-500"
+                >
+                  Tidak ada data bioassay ditemukan
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+
+          {bioactivityData.pagination && (
+            <TableCaption className="mt-2 text-xs text-slate-500">
+              Menampilkan {bioactivityData.bioactivity.assays.length} dari{" "}
+              {bioactivityData.pagination.totalItems} data bioassay
+            </TableCaption>
+          )}
+        </Table>
+      </div>
     </div>
   );
 }

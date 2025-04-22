@@ -413,7 +413,6 @@ export default function DrugDetailPage() {
               <MdKeyboardArrowDown className="ml-2 h-4 w-4" />
             </Button>
           </SheetTrigger>
-          // Di dalam SheetContent (menu mobile)
           <SheetContent side="bottom" className="h-[40vh]">
             <div className="grid gap-1 py-2">
               <Button
