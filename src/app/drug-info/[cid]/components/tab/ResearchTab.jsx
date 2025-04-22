@@ -40,6 +40,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import Link from "next/link";
 
 export default function ResearchTab({ compound }) {
   const [bioactivityData, setBioactivityData] = useState(null);
@@ -675,22 +676,18 @@ export default function ResearchTab({ compound }) {
                                 </div>
                               </td>
                               <td className="px-2 sm:px-3 py-1.5 sm:py-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 sm:h-7 text-[9px] sm:text-xs p-1 sm:p-2"
-                                  onClick={() => {
-                                    window.open(
-                                      `/api/obat/bioactivity/${compound.cid}?aid=${assay["AID"]}`,
-                                      "_blank"
-                                    );
-                                  }}
-                                >
-                                  <MdOpenInNew className="mr-1 h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                                  <span className="hidden xs:inline">
-                                    Detail
-                                  </span>
-                                </Button>
+                                <Link href={`/bioaktivitas/${assay["AID"]}`}>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 sm:h-7 text-[9px] sm:text-xs p-1 sm:p-2 w-full"
+                                  >
+                                    <MdOpenInNew className="mr-1 h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                    <span className="hidden xs:inline">
+                                      Detail
+                                    </span>
+                                  </Button>
+                                </Link>
                               </td>
                             </tr>
                           )
