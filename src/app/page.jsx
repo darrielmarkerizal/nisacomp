@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReconciliationDialog } from "@/components/ReconciliationDialog";
 
 export default function Home() {
   const firstName = "Nisa";
@@ -100,6 +101,9 @@ export default function Home() {
 
   return (
     <>
+      {/* Reconciliation Dialog */}
+      <ReconciliationDialog />
+
       {/* Header dengan greeting - Rata Kiri */}
       <div className="mb-6 md:mb-8">
         <h2 className="text-xl md:text-2xl font-medium text-slate-800">
